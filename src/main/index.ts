@@ -1,74 +1,166 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import { app, BrowserWindow, ipcMain } from 'electron'
+import * as path from 'path'
+import { is } from '@electron-toolkit/utils'
+import { getSettings, saveSettings } from './settings-store'
+import { detectBlitzPath } from './detector'
+import { BlitzLauncher } from './launcher'
+import { Poller } from './poller'
+import { createTray } from './tray'
+import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
 
-function createWindow(): void {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
-    show: false,
-    autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+// Enforce single instance
+if (!app.requestSingleInstanceLock()) app.quit()
+
+let mainWindow: BrowserWindow | null = null
+let settingsWindow: BrowserWindow | null = null
+const launcher = new BlitzLauncher()
+const logEntries: unknown[] = []
+
+function createMainWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 400,
+    height: 500,
+    resizable: true,
+    frame: false,
+    backgroundColor: '#0f0e17',
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    win.loadFile(path.join(__dirname, '../renderer/index.html'))
+  }
+
+  win.on('close', (e) => {
+    e.preventDefault()
+    win.hide()
+  })
+
+  return win
+}
+
+function createSettingsWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 350,
+    height: 270,
+    resizable: false,
+    parent: mainWindow ?? undefined,
+    modal: false,
+    frame: false,
+    backgroundColor: '#0f0e17',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/settings.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    const devUrl = process.env['ELECTRON_RENDERER_URL']
+    // electron-vite dev server serves settings at a different port or path
+    win.loadURL(devUrl.replace(/:\d+/, (m) => m) + '/settings.html')
+      .catch(() => win.loadFile(path.join(__dirname, '../settings/index.html')))
+  } else {
+    win.loadFile(path.join(__dirname, '../settings/index.html'))
+  }
+
+  win.on('closed', () => { settingsWindow = null })
+
+  return win
+}
+
+app.whenReady().then(() => {
+  app.setAppUserModelId('com.riotcompanionhelper.app')
+
+  const settings = getSettings()
+
+  // Auto-detect Blitz path if not set
+  if (!settings.blitzPath) {
+    const detected = detectBlitzPath()
+    if (detected) {
+      saveSettings({ ...settings, blitzPath: detected })
+    }
+  }
+
+  mainWindow = createMainWindow()
+
+  // Declare tray early so the Poller closure can reference it safely
+  let tray: import('electron').Tray | null = null
+
+  const poller = new Poller({
+    launcher,
+    onLog: (entry) => {
+      logEntries.unshift(entry)
+      if (logEntries.length > 100) logEntries.pop()
+      mainWindow?.webContents.send('log:entry', entry)
+    },
+    onStateChange: (state) => {
+      setCurrentState(state)
+      mainWindow?.webContents.send('state:update', state)
+    },
+    onTrayNotify: (title, message) => {
+      tray?.displayBalloon({ title, content: message, iconType: 'warning' })
+    },
+  })
+
+  const currentSettings = getSettings()
+  poller.setBlitzPath(currentSettings.blitzPath)
+
+  if (currentSettings.monitoringEnabled && currentSettings.blitzPath) {
+    poller.startInterval(currentSettings.pollingInterval)
+  }
+
+  // Open settings automatically if no Blitz path found
+  if (!currentSettings.blitzPath) {
+    mainWindow.once('show', () => {
+      setTimeout(() => {
+        if (!settingsWindow) {
+          settingsWindow = createSettingsWindow()
+        }
+      }, 500)
+    })
+  }
+
+  tray = createTray(
+    path.join(__dirname, '../../resources/icon.ico'),
+    () => { mainWindow?.show(); mainWindow?.focus() },
+    () => {
+      const s = getSettings()
+      const enabled = !s.monitoringEnabled
+      saveSettings({ ...s, monitoringEnabled: enabled })
+      poller.setMonitoring(enabled)
+    },
+    () => getSettings().monitoringEnabled,
+  )
+
+  registerIpcHandlers(poller)
+
+  // Window control IPC
+  ipcMain.on('window:minimize', () => mainWindow?.minimize())
+  ipcMain.on('window:hide', () => mainWindow?.hide())
+
+  // Settings window: open or focus
+  ipcMain.on('settings:open', () => {
+    if (settingsWindow) {
+      settingsWindow.focus()
+    } else {
+      settingsWindow = createSettingsWindow()
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  app.on('second-instance', () => {
+    mainWindow?.show()
+    mainWindow?.focus()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
+  app.on('before-quit', () => {
+    if (launcher.launchedPid) launcher.kill()
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
-}
-
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  createWindow()
-
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
+  app.on('window-all-closed', (e: Event) => e.preventDefault())
 })
-
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
