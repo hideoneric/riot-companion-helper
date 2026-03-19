@@ -1,35 +1,67 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import React, { useState, useEffect } from 'react'
+import { Header } from './components/Header'
+import { StatusPanel } from './components/StatusPanel'
+import { ActivityLog } from './components/ActivityLog'
 
-function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
-
-  return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
-  )
+declare const window: Window & {
+  api: {
+    openSettings: () => void
+    minimize: () => void
+    hideToTray: () => void
+    getState: () => Promise<{
+      leagueRunning: boolean
+      blitzRunning: boolean
+      monitoringEnabled: boolean
+      blitzPathSet: boolean
+    }>
+    onStateUpdate: (cb: (s: AppState) => void) => () => void
+    onLogEntry: (cb: (e: LogEntry) => void) => () => void
+  }
 }
 
-export default App
+interface AppState {
+  leagueRunning: boolean
+  blitzRunning: boolean
+  monitoringEnabled: boolean
+  blitzPathSet: boolean
+}
+
+interface LogEntry {
+  timestamp: string
+  message: string
+  level: 'info' | 'warn' | 'error'
+}
+
+export default function App() {
+  const [state, setState] = useState<AppState>({
+    leagueRunning: false,
+    blitzRunning: false,
+    monitoringEnabled: true,
+    blitzPathSet: false,
+  })
+  const [logs, setLogs] = useState<LogEntry[]>([])
+
+  useEffect(() => {
+    window.api.getState().then(setState)
+    const unsub1 = window.api.onStateUpdate(setState)
+    const unsub2 = window.api.onLogEntry((e: LogEntry) =>
+      setLogs((prev) => [e, ...prev].slice(0, 100))
+    )
+    return () => {
+      unsub1()
+      unsub2()
+    }
+  }, [])
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#0f0e17' }}>
+      <Header
+        onOpenSettings={() => window.api.openSettings()}
+        onMinimize={() => window.api.minimize()}
+        onClose={() => window.api.hideToTray()}
+      />
+      <StatusPanel {...state} />
+      <ActivityLog entries={logs} />
+    </div>
+  )
+}
