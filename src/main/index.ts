@@ -33,7 +33,7 @@ function createMainWindow(): BrowserWindow {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    win.loadFile(path.join(__dirname, '../renderer/index.html'))
+    win.loadFile(path.join(__dirname, '../renderer/renderer/index.html'))
   }
 
   win.on('close', (e) => {
@@ -62,11 +62,12 @@ function createSettingsWindow(): BrowserWindow {
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
-    // electron-vite dev server serves settings at a different port or path
-    win.loadURL(devUrl.replace(/:\d+/, (m) => m) + '/settings.html')
-      .catch(() => win.loadFile(path.join(__dirname, '../settings/index.html')))
+    // With root='src/', settings is at /settings/index.html on the dev server
+    const base = devUrl.replace(/\/renderer\/index\.html$/, '').replace(/\/$/, '')
+    win.loadURL(`${base}/settings/index.html`)
+      .catch(() => win.loadFile(path.join(__dirname, '../renderer/settings/index.html')))
   } else {
-    win.loadFile(path.join(__dirname, '../settings/index.html'))
+    win.loadFile(path.join(__dirname, '../renderer/settings/index.html'))
   }
 
   win.on('closed', () => { settingsWindow = null })
