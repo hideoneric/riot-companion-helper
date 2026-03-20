@@ -91,6 +91,8 @@ app.whenReady().then(() => {
     valorantRunning: false,
     monitoringEnabled: settings.monitoringEnabled,
     blitzPathSet: !!settings.blitzPath,
+    leagueEnabled: settings.leagueEnabled,
+    valorantEnabled: settings.valorantEnabled,
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
@@ -101,6 +103,8 @@ app.whenReady().then(() => {
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
 
   poller.setBlitzPath(settings.blitzPath)
+  poller.setLeagueEnabled(settings.leagueEnabled)
+  poller.setValorantEnabled(settings.valorantEnabled)
   if (settings.monitoringEnabled && settings.blitzPath) {
     poller.startInterval(settings.pollingInterval)
   }

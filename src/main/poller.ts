@@ -13,6 +13,8 @@ export interface PollerState {
   valorantRunning: boolean
   monitoringEnabled: boolean
   blitzPathSet: boolean
+  leagueEnabled: boolean
+  valorantEnabled: boolean
 }
 
 interface PollerOptions {
@@ -26,6 +28,9 @@ export class Poller {
   private leagueWasRunning = false
   private valorantWasRunning = false
   private monitoringEnabled = true
+  private leagueEnabled = true
+  private valorantEnabled = true
+  private anyEnabledWasRunning = false
   private consecutiveErrors = 0
   private intervalHandle: ReturnType<typeof setInterval> | null = null
   private _blitzPath = ''
@@ -38,7 +43,9 @@ export class Poller {
       s.blitzRunning === state.blitzRunning &&
       s.valorantRunning === state.valorantRunning &&
       s.monitoringEnabled === state.monitoringEnabled &&
-      s.blitzPathSet === state.blitzPathSet
+      s.blitzPathSet === state.blitzPathSet &&
+      s.leagueEnabled === state.leagueEnabled &&
+      s.valorantEnabled === state.valorantEnabled
     ) return
     this.lastState = state
     this.opts.onStateChange(state)
@@ -95,17 +102,18 @@ export class Poller {
       return
     }
 
-    const anyGameRunning = leagueRunning || valorantRunning
-    const wasAnyGameRunning = this.leagueWasRunning || this.valorantWasRunning
-
     // Log game transitions
     if (leagueRunning && !this.leagueWasRunning) this.log('League of Legends detected')
     else if (!leagueRunning && this.leagueWasRunning) this.log('League of Legends closed')
     if (valorantRunning && !this.valorantWasRunning) this.log('Valorant detected')
     else if (!valorantRunning && this.valorantWasRunning) this.log('Valorant closed')
 
-    // Blitz: launch on first game start, kill on last game stop
-    if (anyGameRunning && !wasAnyGameRunning) {
+    // Blitz: launch when any *enabled* game starts, kill when all enabled games stop
+    const anyEnabledRunning =
+      (leagueRunning && this.leagueEnabled) ||
+      (valorantRunning && this.valorantEnabled)
+
+    if (anyEnabledRunning && !this.anyEnabledWasRunning) {
       if (this.opts.launcher.launchedPid) {
         this.log('Blitz.gg already running — skipping launch')
       } else if (this._blitzPath) {
@@ -117,7 +125,7 @@ export class Poller {
           this.log(`Failed to launch Blitz.gg: ${(e as Error).message}`, 'error')
         }
       }
-    } else if (!anyGameRunning && wasAnyGameRunning) {
+    } else if (!anyEnabledRunning && this.anyEnabledWasRunning) {
       this.opts.launcher.kill()
       BlitzLauncher.killByName()
       this.log('Blitz.gg closed')
@@ -125,6 +133,7 @@ export class Poller {
 
     this.leagueWasRunning = leagueRunning
     this.valorantWasRunning = valorantRunning
+    this.anyEnabledWasRunning = anyEnabledRunning
 
     this.broadcastIfChanged({
       leagueRunning,
@@ -132,10 +141,16 @@ export class Poller {
       valorantRunning,
       monitoringEnabled: this.monitoringEnabled,
       blitzPathSet: !!this._blitzPath,
+      leagueEnabled: this.leagueEnabled,
+      valorantEnabled: this.valorantEnabled,
     })
   }
 
   setBlitzPath(p: string) { this._blitzPath = p }
+
+  setLeagueEnabled(enabled: boolean) { this.leagueEnabled = enabled }
+
+  setValorantEnabled(enabled: boolean) { this.valorantEnabled = enabled }
 
   setMonitoring(enabled: boolean) {
     this.monitoringEnabled = enabled
@@ -152,6 +167,8 @@ export class Poller {
       valorantRunning: this.valorantWasRunning,
       monitoringEnabled: enabled,
       blitzPathSet: !!this._blitzPath,
+      leagueEnabled: this.leagueEnabled,
+      valorantEnabled: this.valorantEnabled,
     })
   }
 

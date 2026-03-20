@@ -5,6 +5,8 @@ export interface AppSettings {
   launchWithWindows: boolean
   pollingInterval: number // seconds, 1–10
   monitoringEnabled: boolean
+  leagueEnabled: boolean
+  valorantEnabled: boolean
 }
 
 const DEFAULTS: AppSettings = {
@@ -12,6 +14,8 @@ const DEFAULTS: AppSettings = {
   launchWithWindows: false,
   pollingInterval: 3,
   monitoringEnabled: true,
+  leagueEnabled: true,
+  valorantEnabled: true,
 }
 
 const store = new Store<AppSettings>({ defaults: DEFAULTS })
@@ -22,6 +26,8 @@ export function getSettings(): AppSettings {
     launchWithWindows: store.get('launchWithWindows', DEFAULTS.launchWithWindows),
     pollingInterval: store.get('pollingInterval', DEFAULTS.pollingInterval),
     monitoringEnabled: store.get('monitoringEnabled', DEFAULTS.monitoringEnabled),
+    leagueEnabled: store.get('leagueEnabled', DEFAULTS.leagueEnabled),
+    valorantEnabled: store.get('valorantEnabled', DEFAULTS.valorantEnabled),
   }
 }
 
@@ -30,4 +36,6 @@ export function saveSettings(s: AppSettings): void {
   store.set('launchWithWindows', s.launchWithWindows)
   store.set('pollingInterval', s.pollingInterval)
   store.set('monitoringEnabled', s.monitoringEnabled)
+  store.set('leagueEnabled', s.leagueEnabled)
+  store.set('valorantEnabled', s.valorantEnabled)
 }

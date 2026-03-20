@@ -9,6 +9,8 @@ let currentState = {
   valorantRunning: false,
   monitoringEnabled: true,
   blitzPathSet: false,
+  leagueEnabled: true,
+  valorantEnabled: true,
 }
 
 export function setCurrentState(s: typeof currentState) {
@@ -23,6 +25,8 @@ export function registerIpcHandlers(poller: Poller) {
   ipcMain.handle('settings:save', async (_e, newSettings) => {
     saveSettings(newSettings)
     poller.setBlitzPath(newSettings.blitzPath)
+    poller.setLeagueEnabled(newSettings.leagueEnabled)
+    poller.setValorantEnabled(newSettings.valorantEnabled)
     if (newSettings.monitoringEnabled !== currentState.monitoringEnabled) {
       poller.setMonitoring(newSettings.monitoringEnabled)
     }

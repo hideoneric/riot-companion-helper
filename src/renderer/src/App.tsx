@@ -25,6 +25,8 @@ export interface AppState {
   valorantRunning: boolean
   monitoringEnabled: boolean
   blitzPathSet: boolean
+  leagueEnabled: boolean
+  valorantEnabled: boolean
 }
 
 export interface LogEntry {
@@ -38,6 +40,8 @@ export interface Settings {
   launchWithWindows: boolean
   pollingInterval: number
   monitoringEnabled: boolean
+  leagueEnabled: boolean
+  valorantEnabled: boolean
 }
 
 export type Page = 'home' | 'settings'
@@ -50,18 +54,19 @@ export default function App() {
     leagueRunning: false,
     blitzRunning: false,
     valorantRunning: false,
-    valorantTrackerRunning: false,
     monitoringEnabled: true,
     blitzPathSet: false,
-    valorantTrackerPathSet: false,
+    leagueEnabled: true,
+    valorantEnabled: true,
   })
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>({
     blitzPath: '',
-    valorantTrackerPath: '',
     launchWithWindows: false,
     pollingInterval: 3,
     monitoringEnabled: true,
+    leagueEnabled: true,
+    valorantEnabled: true,
   })
 
   useEffect(() => {
@@ -108,6 +113,8 @@ export default function App() {
             <HomePage
               appState={appState}
               logs={logs}
+              settings={settings}
+              onSaveSettings={handleSaveSettings}
               onNavigateToSettings={() => { setActivePage('settings'); setActiveSubPage('general') }}
             />
           )}

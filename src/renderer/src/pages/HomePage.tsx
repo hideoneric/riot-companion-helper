@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
-import type { AppState, LogEntry } from '../App'
+import type { AppState, LogEntry, Settings } from '../App'
 
 interface Props {
   appState: AppState
   logs: LogEntry[]
+  settings: Settings
+  onSaveSettings: (s: Settings) => Promise<void>
   onNavigateToSettings: () => void
 }
 
@@ -13,8 +15,8 @@ const levelColor: Record<LogEntry['level'], string> = {
   error: '#e53935',
 }
 
-export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
-  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet } = appState
+export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateToSettings }: Props) {
+  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet, leagueEnabled, valorantEnabled } = appState
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -52,9 +54,19 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
         {/* ── Game groups ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <GameGroup title="GAMES">
-            <ProcessRow label="League of Legends" running={leagueRunning} />
+            <ProcessRow
+              label="League of Legends"
+              running={leagueRunning}
+              enabled={leagueEnabled}
+              onToggle={() => onSaveSettings({ ...settings, leagueEnabled: !leagueEnabled })}
+            />
             <Divider />
-            <ProcessRow label="Valorant" running={valorantRunning} />
+            <ProcessRow
+              label="Valorant"
+              running={valorantRunning}
+              enabled={valorantEnabled}
+              onToggle={() => onSaveSettings({ ...settings, valorantEnabled: !valorantEnabled })}
+            />
           </GameGroup>
 
           <GameGroup title="COMPANION">
@@ -115,22 +127,59 @@ function Divider() {
   return <div style={{ height: 1, background: '#2c2c32' }} />
 }
 
-function ProcessRow({ label, running }: { label: string; running: boolean }) {
+function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px' }}>
+    <button
+      onClick={onToggle}
+      title={on ? 'Disable' : 'Enable'}
+      style={{
+        width: 30, height: 16, borderRadius: 8, border: 'none', padding: 0,
+        cursor: 'pointer', background: on ? '#7c5cbf' : '#3a3a3e',
+        position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: 2, left: on ? 16 : 2,
+        width: 12, height: 12, borderRadius: '50%', background: '#ffffff',
+        transition: 'left 0.2s',
+      }} />
+    </button>
+  )
+}
+
+function ProcessRow({
+  label, running,
+  enabled, onToggle,
+}: {
+  label: string
+  running: boolean
+  enabled?: boolean
+  onToggle?: () => void
+}) {
+  const isEnabled = enabled ?? true
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '11px 16px', opacity: isEnabled ? 1 : 0.5, transition: 'opacity 0.2s',
+    }}>
       <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span
-          style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: running ? '#4caf50' : '#3a3a3e',
-            boxShadow: running ? '0 0 6px #4caf5066' : 'none',
-            transition: 'background 0.3s, box-shadow 0.3s',
-          }}
-        />
-        <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
-          {running ? 'Running' : 'Not Running'}
-        </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {onToggle && <ToggleSwitch on={isEnabled} onToggle={onToggle} />}
+        {isEnabled ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: running ? '#4caf50' : '#3a3a3e',
+              boxShadow: running ? '0 0 6px #4caf5066' : 'none',
+              transition: 'background 0.3s, box-shadow 0.3s',
+            }} />
+            <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
+              {running ? 'Running' : 'Not Running'}
+            </span>
+          </span>
+        ) : (
+          <span style={{ fontSize: 12, color: '#3a3a3e', minWidth: 72 }}>Disabled</span>
+        )}
       </span>
     </div>
   )
