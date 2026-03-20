@@ -13,4 +13,11 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('log:entry', (_e, entry) => cb(entry))
     return () => ipcRenderer.removeAllListeners('log:entry')
   },
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  saveSettings: (s: unknown) => ipcRenderer.invoke('settings:save', s),
+  browse: () => ipcRenderer.invoke('settings:browse'),
+  onNavigate: (cb: (page: string) => void) => {
+    ipcRenderer.on('navigate', (_e, page) => cb(page))
+    return () => ipcRenderer.removeAllListeners('navigate')
+  },
 })

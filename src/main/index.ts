@@ -15,18 +15,19 @@ let isQuitting = false
 if (!app.requestSingleInstanceLock()) app.quit()
 
 let mainWindow: BrowserWindow | null = null
-let settingsWindow: BrowserWindow | null = null
 const launcher = new BlitzLauncher()
 const logEntries: unknown[] = []
 
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 400,
-    height: 500,
+    width: 860,
+    height: 580,
+    minWidth: 760,
+    minHeight: 520,
     resizable: true,
     show: false,
     frame: false,
-    backgroundColor: '#0f0e17',
+    backgroundColor: '#111114',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -54,41 +55,6 @@ function createMainWindow(): BrowserWindow {
   return win
 }
 
-function createSettingsWindow(): BrowserWindow {
-  const win = new BrowserWindow({
-    width: 350,
-    height: 270,
-    resizable: false,
-    show: false,
-    parent: mainWindow ?? undefined,
-    modal: false,
-    frame: false,
-    backgroundColor: '#0f0e17',
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/settings.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  })
-
-  win.on('ready-to-show', () => {
-    win.show()
-  })
-
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    const devUrl = process.env['ELECTRON_RENDERER_URL']
-    const base = devUrl.replace(/\/renderer\/index\.html$/, '').replace(/\/$/, '')
-    win.loadURL(`${base}/settings/index.html`)
-      .catch(() => win.loadFile(path.join(__dirname, '../renderer/settings/index.html')))
-  } else {
-    win.loadFile(path.join(__dirname, '../renderer/settings/index.html'))
-  }
-
-  win.on('closed', () => { settingsWindow = null })
-
-  return win
-}
-
 app.whenReady().then(() => {
   app.setAppUserModelId('com.riotcompanionhelper.app')
 
@@ -102,9 +68,8 @@ app.whenReady().then(() => {
     }
   }
 
-  const launcher_ = launcher
   const poller = new Poller({
-    launcher: launcher_,
+    launcher,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -131,35 +96,18 @@ app.whenReady().then(() => {
   registerIpcHandlers(poller)
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:hide', () => mainWindow?.hide())
-  ipcMain.on('settings:open', () => {
-    if (settingsWindow) {
-      settingsWindow.focus()
-    } else {
-      settingsWindow = createSettingsWindow()
-    }
-  })
+  // settings:open navigates the renderer to the settings page instead of opening a new window
+  ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
 
   poller.setBlitzPath(settings.blitzPath)
   if (settings.monitoringEnabled && settings.blitzPath) {
     poller.startInterval(settings.pollingInterval)
   }
 
-  // Create windows after IPC is ready
+  // Create window after IPC is ready
   mainWindow = createMainWindow()
 
-  // Declare tray variable so Poller closure can reference it
   let tray: import('electron').Tray | null = null
-
-  // Auto-open settings if no Blitz path
-  if (!settings.blitzPath) {
-    mainWindow.once('show', () => {
-      setTimeout(() => {
-        if (!settingsWindow) {
-          settingsWindow = createSettingsWindow()
-        }
-      }, 300)
-    })
-  }
 
   const iconPath = is.dev
     ? path.join(__dirname, '../../resources/icon.ico')
