@@ -8,6 +8,9 @@ import { Poller } from './poller'
 import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
 
+app.setName('Riot Companion Helper')
+let isQuitting = false
+
 // Enforce single instance
 if (!app.requestSingleInstanceLock()) app.quit()
 
@@ -21,6 +24,7 @@ function createMainWindow(): BrowserWindow {
     width: 400,
     height: 500,
     resizable: true,
+    show: false,
     frame: false,
     backgroundColor: '#0f0e17',
     webPreferences: {
@@ -30,6 +34,10 @@ function createMainWindow(): BrowserWindow {
     },
   })
 
+  win.on('ready-to-show', () => {
+    win.show()
+  })
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -37,8 +45,10 @@ function createMainWindow(): BrowserWindow {
   }
 
   win.on('close', (e) => {
-    e.preventDefault()
-    win.hide()
+    if (!isQuitting) {
+      e.preventDefault()
+      win.hide()
+    }
   })
 
   return win
@@ -49,6 +59,7 @@ function createSettingsWindow(): BrowserWindow {
     width: 350,
     height: 270,
     resizable: false,
+    show: false,
     parent: mainWindow ?? undefined,
     modal: false,
     frame: false,
@@ -60,9 +71,12 @@ function createSettingsWindow(): BrowserWindow {
     },
   })
 
+  win.on('ready-to-show', () => {
+    win.show()
+  })
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
-    // With root='src/', settings is at /settings/index.html on the dev server
     const base = devUrl.replace(/\/renderer\/index\.html$/, '').replace(/\/$/, '')
     win.loadURL(`${base}/settings/index.html`)
       .catch(() => win.loadFile(path.join(__dirname, '../renderer/settings/index.html')))
@@ -78,23 +92,19 @@ function createSettingsWindow(): BrowserWindow {
 app.whenReady().then(() => {
   app.setAppUserModelId('com.riotcompanionhelper.app')
 
-  const settings = getSettings()
-
-  // Auto-detect Blitz path if not set
+  // Load and (if needed) auto-detect settings before anything else
+  let settings = getSettings()
   if (!settings.blitzPath) {
     const detected = detectBlitzPath()
     if (detected) {
       saveSettings({ ...settings, blitzPath: detected })
+      settings = getSettings()
     }
   }
 
-  mainWindow = createMainWindow()
-
-  // Declare tray early so the Poller closure can reference it safely
-  let tray: import('electron').Tray | null = null
-
+  const launcher_ = launcher
   const poller = new Poller({
-    launcher,
+    launcher: launcher_,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -109,26 +119,54 @@ app.whenReady().then(() => {
     },
   })
 
-  const currentSettings = getSettings()
-  poller.setBlitzPath(currentSettings.blitzPath)
+  // Seed initial state from persisted settings so state:get is correct immediately
+  setCurrentState({
+    leagueRunning: false,
+    blitzRunning: false,
+    monitoringEnabled: settings.monitoringEnabled,
+    blitzPathSet: !!settings.blitzPath,
+  })
 
-  if (currentSettings.monitoringEnabled && currentSettings.blitzPath) {
-    poller.startInterval(currentSettings.pollingInterval)
+  // Register IPC handlers BEFORE creating windows to avoid any race
+  registerIpcHandlers(poller)
+  ipcMain.on('window:minimize', () => mainWindow?.minimize())
+  ipcMain.on('window:hide', () => mainWindow?.hide())
+  ipcMain.on('settings:open', () => {
+    if (settingsWindow) {
+      settingsWindow.focus()
+    } else {
+      settingsWindow = createSettingsWindow()
+    }
+  })
+
+  poller.setBlitzPath(settings.blitzPath)
+  if (settings.monitoringEnabled && settings.blitzPath) {
+    poller.startInterval(settings.pollingInterval)
   }
 
-  // Open settings automatically if no Blitz path found
-  if (!currentSettings.blitzPath) {
+  // Create windows after IPC is ready
+  mainWindow = createMainWindow()
+
+  // Declare tray variable so Poller closure can reference it
+  let tray: import('electron').Tray | null = null
+
+  // Auto-open settings if no Blitz path
+  if (!settings.blitzPath) {
     mainWindow.once('show', () => {
       setTimeout(() => {
         if (!settingsWindow) {
           settingsWindow = createSettingsWindow()
         }
-      }, 500)
+      }, 300)
     })
   }
 
+  const iconPath = is.dev
+    ? path.join(__dirname, '../../resources/icon.ico')
+    : path.join(process.resourcesPath, 'icon.ico')
+
   tray = createTray(
-    path.join(__dirname, '../../resources/icon.ico'),
+    iconPath,
     () => { mainWindow?.show(); mainWindow?.focus() },
     () => {
       const s = getSettings()
@@ -139,27 +177,13 @@ app.whenReady().then(() => {
     () => getSettings().monitoringEnabled,
   )
 
-  registerIpcHandlers(poller)
-
-  // Window control IPC
-  ipcMain.on('window:minimize', () => mainWindow?.minimize())
-  ipcMain.on('window:hide', () => mainWindow?.hide())
-
-  // Settings window: open or focus
-  ipcMain.on('settings:open', () => {
-    if (settingsWindow) {
-      settingsWindow.focus()
-    } else {
-      settingsWindow = createSettingsWindow()
-    }
-  })
-
   app.on('second-instance', () => {
     mainWindow?.show()
     mainWindow?.focus()
   })
 
   app.on('before-quit', () => {
+    isQuitting = true
     if (launcher.launchedPid) launcher.kill()
   })
 

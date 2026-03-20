@@ -42,14 +42,20 @@ export default function App() {
   const [logs, setLogs] = useState<LogEntry[]>([])
 
   useEffect(() => {
-    window.api.getState().then(setState)
-    const unsub1 = window.api.onStateUpdate(setState)
-    const unsub2 = window.api.onLogEntry((e: LogEntry) =>
-      setLogs((prev) => [e, ...prev].slice(0, 100))
-    )
-    return () => {
-      unsub1()
-      unsub2()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(window as any).api) return
+    try {
+      window.api.getState().then(setState).catch(console.error)
+      const unsub1 = window.api.onStateUpdate(setState)
+      const unsub2 = window.api.onLogEntry((e: LogEntry) =>
+        setLogs((prev) => [e, ...prev].slice(0, 100))
+      )
+      return () => {
+        unsub1()
+        unsub2()
+      }
+    } catch (err) {
+      console.error('window.api error:', err)
     }
   }, [])
 
