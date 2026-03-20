@@ -27,6 +27,19 @@ export class Poller {
   private consecutiveErrors = 0
   private intervalHandle: ReturnType<typeof setInterval> | null = null
   private _blitzPath = ''
+  private lastState: PollerState | null = null
+
+  private broadcastIfChanged(state: PollerState) {
+    const s = this.lastState
+    if (s &&
+      s.leagueRunning === state.leagueRunning &&
+      s.blitzRunning === state.blitzRunning &&
+      s.monitoringEnabled === state.monitoringEnabled &&
+      s.blitzPathSet === state.blitzPathSet
+    ) return
+    this.lastState = state
+    this.opts.onStateChange(state)
+  }
 
   constructor(private opts: PollerOptions) {}
 
@@ -84,7 +97,7 @@ export class Poller {
       this.leagueWasRunning = false
     }
 
-    this.opts.onStateChange({
+    this.broadcastIfChanged({
       leagueRunning,
       blitzRunning: this.isBlitzRunning(),
       monitoringEnabled: this.monitoringEnabled,
@@ -112,7 +125,7 @@ export class Poller {
       this.log('Monitoring resumed')
       this.tick()
     }
-    this.opts.onStateChange({
+    this.broadcastIfChanged({
       leagueRunning: this.leagueWasRunning,
       blitzRunning: this.isBlitzRunning(),
       monitoringEnabled: enabled,

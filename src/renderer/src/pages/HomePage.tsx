@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { AppState, LogEntry } from '../App'
 
 interface Props {
@@ -51,24 +51,7 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
             {statusLabel}
           </span>
           {!blitzPathSet && (
-            <button
-              onClick={onNavigateToSettings}
-              style={{
-                marginLeft: 8,
-                background: 'transparent',
-                border: '1px solid #2c2c32',
-                borderRadius: 5,
-                color: '#8e8e9a',
-                cursor: 'pointer',
-                fontSize: 11,
-                padding: '3px 10px',
-                transition: 'border-color 0.15s, color 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#7c5cbf'; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2c2c32'; e.currentTarget.style.color = '#8e8e9a' }}
-            >
-              Open Settings
-            </button>
+            <SettingsLink onClick={onNavigateToSettings} />
           )}
         </div>
 
@@ -104,8 +87,8 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
           ) : (
             <>
               <div ref={topRef} />
-              {logs.map((e, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, fontSize: 12, marginBottom: 5, lineHeight: 1.6 }}>
+              {logs.map((e) => (
+                <div key={`${e.timestamp}-${e.message}`} style={{ display: 'flex', gap: 12, fontSize: 12, marginBottom: 5, lineHeight: 1.6 }}>
                   <span style={{ color: '#3a3a3e', minWidth: 60, flexShrink: 0, fontFamily: 'monospace' }}>
                     {e.timestamp}
                   </span>
@@ -117,6 +100,30 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+function SettingsLink({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        marginLeft: 8,
+        background: 'transparent',
+        border: `1px solid ${hovered ? '#7c5cbf' : '#2c2c32'}`,
+        borderRadius: 5,
+        color: hovered ? '#fff' : '#8e8e9a',
+        cursor: 'pointer',
+        fontSize: 11,
+        padding: '3px 10px',
+        transition: 'border-color 0.15s, color 0.15s',
+      }}
+    >
+      Open Settings
+    </button>
   )
 }
 
