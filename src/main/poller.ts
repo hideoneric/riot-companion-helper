@@ -86,10 +86,19 @@ export class Poller {
 
     this.opts.onStateChange({
       leagueRunning,
-      blitzRunning: this.opts.launcher.launchedPid !== null,
+      blitzRunning: this.isBlitzRunning(),
       monitoringEnabled: this.monitoringEnabled,
       blitzPathSet: !!this._blitzPath,
     })
+  }
+
+  private isBlitzRunning(): boolean {
+    try {
+      const out = execSync('tasklist /FI "IMAGENAME eq Blitz.exe" /NH', { encoding: 'utf8' }) as unknown as string
+      return out.includes('Blitz.exe')
+    } catch {
+      return this.opts.launcher.launchedPid !== null
+    }
   }
 
   setBlitzPath(p: string) { this._blitzPath = p }
@@ -105,7 +114,7 @@ export class Poller {
     }
     this.opts.onStateChange({
       leagueRunning: this.leagueWasRunning,
-      blitzRunning: this.opts.launcher.launchedPid !== null,
+      blitzRunning: this.isBlitzRunning(),
       monitoringEnabled: enabled,
       blitzPathSet: !!this._blitzPath,
     })
