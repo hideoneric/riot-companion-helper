@@ -3,7 +3,7 @@ import * as path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { getSettings, saveSettings } from './settings-store'
 import { detectBlitzPath } from './detector'
-import { BlitzLauncher, ValorantTrackerLauncher } from './launcher'
+import { BlitzLauncher } from './launcher'
 import { Poller } from './poller'
 import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
@@ -16,7 +16,6 @@ if (!app.requestSingleInstanceLock()) app.quit()
 
 let mainWindow: BrowserWindow | null = null
 const launcher = new BlitzLauncher()
-const valorantLauncher = new ValorantTrackerLauncher()
 const logEntries: unknown[] = []
 
 function createMainWindow(): BrowserWindow {
@@ -71,7 +70,6 @@ app.whenReady().then(() => {
 
   const poller = new Poller({
     launcher,
-    valorantLauncher,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -91,10 +89,8 @@ app.whenReady().then(() => {
     leagueRunning: false,
     blitzRunning: false,
     valorantRunning: false,
-    valorantTrackerRunning: false,
     monitoringEnabled: settings.monitoringEnabled,
     blitzPathSet: !!settings.blitzPath,
-    valorantTrackerPathSet: !!settings.valorantTrackerPath,
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
@@ -105,8 +101,7 @@ app.whenReady().then(() => {
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
 
   poller.setBlitzPath(settings.blitzPath)
-  poller.setValorantTrackerPath(settings.valorantTrackerPath)
-  if (settings.monitoringEnabled && (settings.blitzPath || settings.valorantTrackerPath)) {
+  if (settings.monitoringEnabled && settings.blitzPath) {
     poller.startInterval(settings.pollingInterval)
   }
 

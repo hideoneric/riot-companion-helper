@@ -14,15 +14,14 @@ const levelColor: Record<LogEntry['level'], string> = {
 }
 
 export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
-  const { leagueRunning, blitzRunning, valorantRunning, valorantTrackerRunning,
-          monitoringEnabled, blitzPathSet, valorantTrackerPathSet } = appState
+  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet } = appState
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs.length])
 
-  const anyPathSet = blitzPathSet || valorantTrackerPathSet
+  const anyPathSet = blitzPathSet
   const statusLabel = !anyPathSet
     ? 'WAITING FOR SETUP'
     : !monitoringEnabled
@@ -52,16 +51,14 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
 
         {/* ── Game groups ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <GameGroup title="LEAGUE OF LEGENDS">
+          <GameGroup title="GAMES">
             <ProcessRow label="League of Legends" running={leagueRunning} />
             <Divider />
-            <ProcessRow label="Blitz.gg" running={blitzRunning} dimmed={!blitzPathSet} />
+            <ProcessRow label="Valorant" running={valorantRunning} />
           </GameGroup>
 
-          <GameGroup title="VALORANT">
-            <ProcessRow label="Valorant" running={valorantRunning} />
-            <Divider />
-            <ProcessRow label="Valorant Tracker" running={valorantTrackerRunning} dimmed={!valorantTrackerPathSet} />
+          <GameGroup title="COMPANION">
+            <ProcessRow label="Blitz.gg" running={blitzRunning} />
           </GameGroup>
         </div>
       </div>
@@ -118,10 +115,10 @@ function Divider() {
   return <div style={{ height: 1, background: '#2c2c32' }} />
 }
 
-function ProcessRow({ label, running, dimmed }: { label: string; running: boolean; dimmed?: boolean }) {
+function ProcessRow({ label, running }: { label: string; running: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px' }}>
-      <span style={{ fontSize: 13, color: dimmed ? '#555560' : '#d0d0d8' }}>{label}</span>
+      <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <span
           style={{

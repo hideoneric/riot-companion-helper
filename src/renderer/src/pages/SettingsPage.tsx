@@ -4,7 +4,6 @@ import type { Settings, SubPage } from '../App'
 declare const window: Window & {
   api: {
     browse: () => Promise<string | null>
-    detectOverwolf: () => Promise<string | null>
   }
 }
 
@@ -24,42 +23,19 @@ export function SettingsPage({ sub, settings, onSave }: Props) {
 
 function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s: Settings) => Promise<void> }) {
   const [blitzPath, setBlitzPath] = useState(settings.blitzPath)
-  const [valorantPath, setValorantPath] = useState(settings.valorantTrackerPath)
   const [interval, setInterval] = useState(settings.pollingInterval)
   const [savingBlitz, setSavingBlitz] = useState(false)
-  const [savingValorant, setSavingValorant] = useState(false)
-  const blitzPathValid = !blitzPath || blitzPath.toLowerCase().endsWith('.exe')
-  const valorantPathValid = !valorantPath || valorantPath.toLowerCase().endsWith('.exe')
+  const isValidPath = (p: string) => !p || p.toLowerCase().endsWith('.exe') || p.toLowerCase().endsWith('.lnk')
+  const blitzPathValid = isValidPath(blitzPath)
 
   useEffect(() => { setBlitzPath(settings.blitzPath) }, [settings.blitzPath])
-  useEffect(() => { setValorantPath(settings.valorantTrackerPath) }, [settings.valorantTrackerPath])
   useEffect(() => { setInterval(settings.pollingInterval) }, [settings.pollingInterval])
-
-  const handleBrowse = async (setter: (v: string) => void) => {
-    const p = await window.api.browse()
-    if (p) setter(p)
-  }
 
   const handleUpdateBlitz = async () => {
     if (!blitzPathValid) return
     setSavingBlitz(true)
     await onSave({ ...settings, blitzPath })
     setSavingBlitz(false)
-  }
-
-  const handleUpdateValorant = async () => {
-    if (!valorantPathValid) return
-    setSavingValorant(true)
-    await onSave({ ...settings, valorantTrackerPath: valorantPath })
-    setSavingValorant(false)
-  }
-
-  const handleAutoDetectOverwolf = async () => {
-    const p = await window.api.detectOverwolf()
-    if (p) {
-      setValorantPath(p)
-      await onSave({ ...settings, valorantTrackerPath: p })
-    }
   }
 
   const handleUpdateInterval = async (v: number) => {
@@ -71,11 +47,11 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
     <div style={{ padding: '32px 36px', flex: 1, overflowY: 'auto' }}>
       <PageHeading>General</PageHeading>
 
-      {/* ── League of Legends / Blitz ── */}
-      <SectionHeading>League of Legends</SectionHeading>
+      {/* ── Companion ── */}
+      <SectionHeading>Companion</SectionHeading>
 
       <SettingRow label="Blitz path">
-        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 420 }}>
+        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
           <input
             value={blitzPath}
             onChange={(e) => setBlitzPath(e.target.value)}
@@ -84,6 +60,7 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
               flex: 1, background: '#28282d',
               border: `1px solid ${blitzPathValid ? '#3a3a3e' : '#c0392b'}`,
               borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
+              minWidth: 0,
             }}
           />
           <OutlinedButton onClick={handleUpdateBlitz} disabled={!blitzPathValid || savingBlitz}>
@@ -91,39 +68,9 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
           </OutlinedButton>
         </div>
         {!blitzPathValid && blitzPath && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe file</div>
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe or .lnk file</div>
         )}
-        <MutedButton onClick={() => handleBrowse(setBlitzPath)}>Browse…</MutedButton>
-      </SettingRow>
-
-      <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
-
-      {/* ── Valorant / Valorant Tracker ── */}
-      <SectionHeading>Valorant</SectionHeading>
-
-      <SettingRow label="Valorant Tracker path">
-        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 420 }}>
-          <input
-            value={valorantPath}
-            onChange={(e) => setValorantPath(e.target.value)}
-            placeholder="C:\...\Overwolf.exe"
-            style={{
-              flex: 1, background: '#28282d',
-              border: `1px solid ${valorantPathValid ? '#3a3a3e' : '#c0392b'}`,
-              borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
-            }}
-          />
-          <OutlinedButton onClick={handleUpdateValorant} disabled={!valorantPathValid || savingValorant}>
-            {savingValorant ? 'Saving…' : 'Update'}
-          </OutlinedButton>
-        </div>
-        {!valorantPathValid && valorantPath && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe file</div>
-        )}
-        <div style={{ display: 'flex', gap: 12 }}>
-          <MutedButton onClick={() => handleBrowse(setValorantPath)}>Browse…</MutedButton>
-          <MutedButton onClick={handleAutoDetectOverwolf}>Auto-detect</MutedButton>
-        </div>
+        <MutedButton onClick={async () => { const p = await window.api.browse(); if (p) setBlitzPath(p) }}>Browse…</MutedButton>
       </SettingRow>
 
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
@@ -284,12 +231,10 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 4 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <span style={{ fontSize: 13, color: '#d0d0d8', whiteSpace: 'nowrap' }}>{label}</span>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          {children}
-        </div>
+    <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {children}
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { execSync } from 'child_process'
-import { BlitzLauncher, ValorantTrackerLauncher } from './launcher'
+import { BlitzLauncher } from './launcher'
 
 export interface LogEntry {
   timestamp: string
@@ -11,15 +11,12 @@ export interface PollerState {
   leagueRunning: boolean
   blitzRunning: boolean
   valorantRunning: boolean
-  valorantTrackerRunning: boolean
   monitoringEnabled: boolean
   blitzPathSet: boolean
-  valorantTrackerPathSet: boolean
 }
 
 interface PollerOptions {
   launcher: BlitzLauncher
-  valorantLauncher: ValorantTrackerLauncher
   onLog: (entry: LogEntry) => void
   onStateChange: (state: PollerState) => void
   onTrayNotify?: (title: string, message: string) => void
@@ -32,7 +29,6 @@ export class Poller {
   private consecutiveErrors = 0
   private intervalHandle: ReturnType<typeof setInterval> | null = null
   private _blitzPath = ''
-  private _valorantTrackerPath = ''
   private lastState: PollerState | null = null
 
   private broadcastIfChanged(state: PollerState) {
@@ -41,10 +37,8 @@ export class Poller {
       s.leagueRunning === state.leagueRunning &&
       s.blitzRunning === state.blitzRunning &&
       s.valorantRunning === state.valorantRunning &&
-      s.valorantTrackerRunning === state.valorantTrackerRunning &&
       s.monitoringEnabled === state.monitoringEnabled &&
-      s.blitzPathSet === state.blitzPathSet &&
-      s.valorantTrackerPathSet === state.valorantTrackerPathSet
+      s.blitzPathSet === state.blitzPathSet
     ) return
     this.lastState = state
     this.opts.onStateChange(state)
@@ -101,9 +95,17 @@ export class Poller {
       return
     }
 
-    // ── League / Blitz ──────────────────────────────────────────
-    if (leagueRunning && !this.leagueWasRunning) {
-      this.log('League of Legends detected')
+    const anyGameRunning = leagueRunning || valorantRunning
+    const wasAnyGameRunning = this.leagueWasRunning || this.valorantWasRunning
+
+    // Log game transitions
+    if (leagueRunning && !this.leagueWasRunning) this.log('League of Legends detected')
+    else if (!leagueRunning && this.leagueWasRunning) this.log('League of Legends closed')
+    if (valorantRunning && !this.valorantWasRunning) this.log('Valorant detected')
+    else if (!valorantRunning && this.valorantWasRunning) this.log('Valorant closed')
+
+    // Blitz: launch on first game start, kill on last game stop
+    if (anyGameRunning && !wasAnyGameRunning) {
       if (this.opts.launcher.launchedPid) {
         this.log('Blitz.gg already running — skipping launch')
       } else if (this._blitzPath) {
@@ -115,50 +117,25 @@ export class Poller {
           this.log(`Failed to launch Blitz.gg: ${(e as Error).message}`, 'error')
         }
       }
-      this.leagueWasRunning = true
-    } else if (!leagueRunning && this.leagueWasRunning) {
-      this.log('League of Legends closed')
+    } else if (!anyGameRunning && wasAnyGameRunning) {
       this.opts.launcher.kill()
       BlitzLauncher.killByName()
       this.log('Blitz.gg closed')
-      this.leagueWasRunning = false
     }
 
-    // ── Valorant / Valorant Tracker ─────────────────────────────
-    if (valorantRunning && !this.valorantWasRunning) {
-      this.log('Valorant detected')
-      if (this.opts.valorantLauncher.isRunning()) {
-        this.log('Valorant Tracker already running — skipping launch')
-      } else if (this._valorantTrackerPath) {
-        this.log('Launching Valorant Tracker')
-        try {
-          this.opts.valorantLauncher.launch(this._valorantTrackerPath)
-          this.log('Valorant Tracker launched')
-        } catch (e) {
-          this.log(`Failed to launch Valorant Tracker: ${(e as Error).message}`, 'error')
-        }
-      }
-      this.valorantWasRunning = true
-    } else if (!valorantRunning && this.valorantWasRunning) {
-      this.log('Valorant closed')
-      this.opts.valorantLauncher.kill()
-      this.log('Valorant Tracker closed')
-      this.valorantWasRunning = false
-    }
+    this.leagueWasRunning = leagueRunning
+    this.valorantWasRunning = valorantRunning
 
     this.broadcastIfChanged({
       leagueRunning,
       blitzRunning: this.isBlitzRunning(),
       valorantRunning,
-      valorantTrackerRunning: this.opts.valorantLauncher.isRunning(),
       monitoringEnabled: this.monitoringEnabled,
       blitzPathSet: !!this._blitzPath,
-      valorantTrackerPathSet: !!this._valorantTrackerPath,
     })
   }
 
   setBlitzPath(p: string) { this._blitzPath = p }
-  setValorantTrackerPath(p: string) { this._valorantTrackerPath = p }
 
   setMonitoring(enabled: boolean) {
     this.monitoringEnabled = enabled
@@ -173,10 +150,8 @@ export class Poller {
       leagueRunning: this.leagueWasRunning,
       blitzRunning: this.isBlitzRunning(),
       valorantRunning: this.valorantWasRunning,
-      valorantTrackerRunning: this.opts.valorantLauncher.isRunning(),
       monitoringEnabled: enabled,
       blitzPathSet: !!this._blitzPath,
-      valorantTrackerPathSet: !!this._valorantTrackerPath,
     })
   }
 

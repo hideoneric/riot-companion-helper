@@ -16,7 +16,6 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (s: unknown) => ipcRenderer.invoke('settings:save', s),
   browse: () => ipcRenderer.invoke('settings:browse'),
-  detectOverwolf: () => ipcRenderer.invoke('settings:detectOverwolf'),
   onNavigate: (cb: (page: string) => void) => {
     ipcRenderer.on('navigate', (_e, page) => cb(page))
     return () => ipcRenderer.removeAllListeners('navigate')
