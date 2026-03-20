@@ -6,18 +6,21 @@ contextBridge.exposeInMainWorld('api', {
   hideToTray: () => ipcRenderer.send('window:hide'),
   getState: () => ipcRenderer.invoke('state:get'),
   onStateUpdate: (cb: (s: unknown) => void) => {
-    ipcRenderer.on('state:update', (_e, s) => cb(s))
-    return () => ipcRenderer.removeAllListeners('state:update')
+    const handler = (_e: unknown, s: unknown) => cb(s)
+    ipcRenderer.on('state:update', handler)
+    return () => ipcRenderer.removeListener('state:update', handler)
   },
   onLogEntry: (cb: (e: unknown) => void) => {
-    ipcRenderer.on('log:entry', (_e, entry) => cb(entry))
-    return () => ipcRenderer.removeAllListeners('log:entry')
+    const handler = (_e: unknown, entry: unknown) => cb(entry)
+    ipcRenderer.on('log:entry', handler)
+    return () => ipcRenderer.removeListener('log:entry', handler)
   },
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (s: unknown) => ipcRenderer.invoke('settings:save', s),
   browse: () => ipcRenderer.invoke('settings:browse'),
   onNavigate: (cb: (page: string) => void) => {
-    ipcRenderer.on('navigate', (_e, page) => cb(page))
-    return () => ipcRenderer.removeAllListeners('navigate')
+    const handler = (_e: unknown, page: string) => cb(page)
+    ipcRenderer.on('navigate', handler)
+    return () => ipcRenderer.removeListener('navigate', handler)
   },
 })

@@ -21,15 +21,23 @@ export function SettingsPage({ sub, settings, onSave }: Props) {
 
 /* ─── General ──────────────────────────────────────────────── */
 
+function isValidPath(p: string): boolean {
+  return !p || p.toLowerCase().endsWith('.exe') || p.toLowerCase().endsWith('.lnk')
+}
+
 function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s: Settings) => Promise<void> }) {
   const [blitzPath, setBlitzPath] = useState(settings.blitzPath)
   const [interval, setInterval] = useState(settings.pollingInterval)
   const [savingBlitz, setSavingBlitz] = useState(false)
-  const isValidPath = (p: string) => !p || p.toLowerCase().endsWith('.exe') || p.toLowerCase().endsWith('.lnk')
   const blitzPathValid = isValidPath(blitzPath)
 
   useEffect(() => { setBlitzPath(settings.blitzPath) }, [settings.blitzPath])
   useEffect(() => { setInterval(settings.pollingInterval) }, [settings.pollingInterval])
+
+  const handleBrowseBlitz = async () => {
+    const p = await window.api.browse()
+    if (p) setBlitzPath(p)
+  }
 
   const handleUpdateBlitz = async () => {
     if (!blitzPathValid) return
@@ -70,7 +78,7 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
         {!blitzPathValid && blitzPath && (
           <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe or .lnk file</div>
         )}
-        <MutedButton onClick={async () => { const p = await window.api.browse(); if (p) setBlitzPath(p) }}>Browse…</MutedButton>
+        <MutedButton onClick={handleBrowseBlitz}>Browse…</MutedButton>
       </SettingRow>
 
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
