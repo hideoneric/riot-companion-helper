@@ -13,25 +13,25 @@
   <link rel="icon" href="./icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- fix: removed unused weights 400 and 500 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <style>
     /* ── Design tokens ─────────────────────────────────────── */
     :root {
-      --bg-deep:       #111114;
-      --bg-surface:    #1a1a1e;
-      --bg-card:       #28282d;
-      --accent:        #7c5cbf;
-      --accent-light:  #9d7de8;
-      --accent-dim:    rgba(124, 92, 191, 0.15);
-      --accent-glow:   rgba(124, 92, 191, 0.50);
-      --green:         #4caf50;
-      --green-glow:    rgba(76, 175, 80, 0.35);
-      --border:        #2c2c32;
-      --text-primary:  #d0d0d8;
-      --text-muted:    #8e8e9a;
-      --text-dim:      #3a3a3e;
-      --white:         #ffffff;
+      --bg-deep:          #111114;
+      --bg-surface:       #1a1a1e;
+      --accent:           #7c5cbf;
+      --accent-light:     #9d7de8;
+      --accent-lighter:   #c0a8ff;
+      --accent-purple-lg: #b49de6;
+      --accent-dim:       rgba(124, 92, 191, 0.15);
+      --accent-glow:      rgba(124, 92, 191, 0.50);
+      --green:            #4caf50;
+      --border:           #2c2c32;
+      --text-primary:     #d0d0d8;
+      --text-muted:       #8e8e9a;
+      --white:            #ffffff;
     }
 
     /* ── Reset ─────────────────────────────────────────────── */
@@ -48,7 +48,8 @@
 
     a { color: inherit; text-decoration: none; }
     img { display: block; }
-    ol { list-style: none; }
+    /* fix: was global ol {}, scoped to .steps only */
+    .steps { list-style: none; }
 
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -149,6 +150,7 @@
       padding: 100px clamp(20px, 5vw, 80px) 80px;
       overflow: hidden;
       background: var(--bg-deep);
+      isolation: isolate; /* fix: contain blur from ::before to this stacking context */
     }
 
     /* Aurora blobs */
@@ -207,7 +209,8 @@
     .hero-tagline {
       font-size: clamp(1.05rem, 2.5vw, 1.35rem);
       font-weight: 600;
-      background: linear-gradient(95deg, #b49de6, #7c5cbf, #9d7de8);
+      /* fix: was #b49de6, #7c5cbf, #9d7de8 hardcoded */
+      background: linear-gradient(95deg, var(--accent-purple-lg), var(--accent), var(--accent-light));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -463,7 +466,7 @@
       transition: color 0.15s;
     }
     .footer-text a:hover {
-      color: #c0a8ff;
+      color: var(--accent-lighter); /* fix: was hardcoded #c0a8ff */
     }
 
     .footer-github {
@@ -496,6 +499,13 @@
   </style>
 </head>
 <body>
+
+  <!-- fix: GitHub mark extracted to reusable SVG symbol -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="icon-github" viewBox="0 0 16 16">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+    </symbol>
+  </svg>
 
   <!-- ── Header ──────────────────────────────────────────── -->
   <header id="site-header" role="banner">
@@ -559,19 +569,16 @@
           rel="noopener noreferrer"
           aria-label="View source on GitHub"
         >
-          <!-- GitHub mark -->
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-          </svg>
+          <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#icon-github"/></svg>
           View on GitHub
         </a>
       </div>
 
       <span class="hero-badge" aria-label="Platform info">
-        <!-- Checkmark circle -->
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-          <circle cx="6.5" cy="6.5" r="5.75" stroke="#4caf50" stroke-width="1.1"/>
-          <path d="M4 6.5l2 2 3.5-3.5" stroke="#4caf50" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- fix: was stroke="#4caf50" hardcoded; now uses currentColor via CSS -->
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:var(--green)" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="5.75" stroke="currentColor" stroke-width="1.1"/>
+          <path d="M4 6.5l2 2 3.5-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Windows 10/11 &nbsp;&middot;&nbsp; Free &nbsp;&middot;&nbsp; Open Source
       </span>
@@ -685,18 +692,21 @@
       rel="noopener noreferrer"
       aria-label="View source on GitHub"
     >
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-      </svg>
+      <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#icon-github"/></svg>
       GitHub
     </a>
   </footer>
 
   <script>
-    // Navbar scroll darkening
+    // Navbar scroll darkening — guarded to only toggle on threshold crossings
     const header = document.getElementById('site-header')
+    let headerScrolled = false
     window.addEventListener('scroll', () => {
-      header.classList.toggle('scrolled', window.scrollY > 20)
+      const shouldScroll = window.scrollY > 20
+      if (shouldScroll !== headerScrolled) {
+        headerScrolled = shouldScroll
+        header.classList.toggle('scrolled', shouldScroll)
+      }
     }, { passive: true })
 
     // Scroll-reveal via IntersectionObserver
