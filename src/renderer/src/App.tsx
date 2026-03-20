@@ -15,6 +15,7 @@ declare const window: Window & {
     getSettings: () => Promise<Settings>
     saveSettings: (s: Settings) => Promise<void>
     browse: () => Promise<string | null>
+    detectOverwolf: () => Promise<string | null>
     onNavigate: (cb: (page: string) => void) => () => void
   }
 }
@@ -22,8 +23,11 @@ declare const window: Window & {
 export interface AppState {
   leagueRunning: boolean
   blitzRunning: boolean
+  valorantRunning: boolean
+  valorantTrackerRunning: boolean
   monitoringEnabled: boolean
   blitzPathSet: boolean
+  valorantTrackerPathSet: boolean
 }
 
 export interface LogEntry {
@@ -34,6 +38,7 @@ export interface LogEntry {
 
 export interface Settings {
   blitzPath: string
+  valorantTrackerPath: string
   launchWithWindows: boolean
   pollingInterval: number
   monitoringEnabled: boolean
@@ -48,12 +53,16 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>({
     leagueRunning: false,
     blitzRunning: false,
+    valorantRunning: false,
+    valorantTrackerRunning: false,
     monitoringEnabled: true,
     blitzPathSet: false,
+    valorantTrackerPathSet: false,
   })
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>({
     blitzPath: '',
+    valorantTrackerPath: '',
     launchWithWindows: false,
     pollingInterval: 3,
     monitoringEnabled: true,

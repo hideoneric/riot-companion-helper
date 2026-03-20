@@ -14,52 +14,55 @@ const levelColor: Record<LogEntry['level'], string> = {
 }
 
 export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
-  const { leagueRunning, blitzRunning, monitoringEnabled, blitzPathSet } = appState
+  const { leagueRunning, blitzRunning, valorantRunning, valorantTrackerRunning,
+          monitoringEnabled, blitzPathSet, valorantTrackerPathSet } = appState
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs.length])
 
-  const statusLabel = !blitzPathSet
-    ? 'WAITING FOR BLITZ PATH'
+  const anyPathSet = blitzPathSet || valorantTrackerPathSet
+  const statusLabel = !anyPathSet
+    ? 'WAITING FOR SETUP'
     : !monitoringEnabled
     ? 'MONITORING PAUSED'
     : 'MONITORING ACTIVE'
-
-  const statusColor = !blitzPathSet ? '#f0a500' : !monitoringEnabled ? '#555560' : '#7c5cbf'
+  const statusColor = !anyPathSet ? '#f0a500' : !monitoringEnabled ? '#555560' : '#7c5cbf'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Monitoring status ── */}
+      {/* ── Status ── */}
       <div style={{ padding: '24px 28px 20px', flexShrink: 0 }}>
         <SectionHeading>Monitoring</SectionHeading>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <span
             style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: statusColor,
-              flexShrink: 0,
-              boxShadow: monitoringEnabled && blitzPathSet ? '0 0 8px #7c5cbf88' : 'none',
+              width: 7, height: 7, borderRadius: '50%', background: statusColor, flexShrink: 0,
+              boxShadow: monitoringEnabled && anyPathSet ? '0 0 8px #7c5cbf88' : 'none',
             }}
           />
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: statusColor }}>
             {statusLabel}
           </span>
-          {!blitzPathSet && (
-            <SettingsLink onClick={onNavigateToSettings} />
-          )}
+          {!anyPathSet && <SettingsLink onClick={onNavigateToSettings} />}
         </div>
 
-        {/* Process rows */}
-        <div style={{ background: '#28282d', borderRadius: 8, border: '1px solid #2c2c32', overflow: 'hidden' }}>
-          <ProcessRow label="League of Legends" running={leagueRunning} />
-          <div style={{ height: 1, background: '#2c2c32' }} />
-          <ProcessRow label="Blitz.gg" running={blitzRunning} />
+        {/* ── Game groups ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <GameGroup title="LEAGUE OF LEGENDS">
+            <ProcessRow label="League of Legends" running={leagueRunning} />
+            <Divider />
+            <ProcessRow label="Blitz.gg" running={blitzRunning} dimmed={!blitzPathSet} />
+          </GameGroup>
+
+          <GameGroup title="VALORANT">
+            <ProcessRow label="Valorant" running={valorantRunning} />
+            <Divider />
+            <ProcessRow label="Valorant Tracker" running={valorantTrackerRunning} dimmed={!valorantTrackerPathSet} />
+          </GameGroup>
         </div>
       </div>
 
@@ -71,13 +74,8 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
 
         <div
           style={{
-            flex: 1,
-            overflowY: 'auto',
-            background: '#28282d',
-            borderRadius: 8,
-            border: '1px solid #2c2c32',
-            padding: '10px 14px',
-            minHeight: 0,
+            flex: 1, overflowY: 'auto', background: '#28282d',
+            borderRadius: 8, border: '1px solid #2c2c32', padding: '10px 14px', minHeight: 0,
           }}
         >
           {logs.length === 0 ? (
@@ -103,27 +101,41 @@ export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
   )
 }
 
-function SettingsLink({ onClick }: { onClick: () => void }) {
-  const [hovered, setHovered] = useState(false)
+function GameGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        marginLeft: 8,
-        background: 'transparent',
-        border: `1px solid ${hovered ? '#7c5cbf' : '#2c2c32'}`,
-        borderRadius: 5,
-        color: hovered ? '#fff' : '#8e8e9a',
-        cursor: 'pointer',
-        fontSize: 11,
-        padding: '3px 10px',
-        transition: 'border-color 0.15s, color 0.15s',
-      }}
-    >
-      Open Settings
-    </button>
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#3a3a3e', marginBottom: 6, paddingLeft: 2 }}>
+        {title}
+      </div>
+      <div style={{ background: '#28282d', borderRadius: 8, border: '1px solid #2c2c32', overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function Divider() {
+  return <div style={{ height: 1, background: '#2c2c32' }} />
+}
+
+function ProcessRow({ label, running, dimmed }: { label: string; running: boolean; dimmed?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px' }}>
+      <span style={{ fontSize: 13, color: dimmed ? '#555560' : '#d0d0d8' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span
+          style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: running ? '#4caf50' : '#3a3a3e',
+            boxShadow: running ? '0 0 6px #4caf5066' : 'none',
+            transition: 'background 0.3s, box-shadow 0.3s',
+          }}
+        />
+        <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
+          {running ? 'Running' : 'Not Running'}
+        </span>
+      </span>
+    </div>
   )
 }
 
@@ -135,25 +147,22 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ProcessRow({ label, running }: { label: string; running: boolean }) {
+function SettingsLink({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
-      <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: running ? '#4caf50' : '#3a3a3e',
-            boxShadow: running ? '0 0 6px #4caf5066' : 'none',
-            transition: 'background 0.3s, box-shadow 0.3s',
-          }}
-        />
-        <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
-          {running ? 'Running' : 'Not Running'}
-        </span>
-      </span>
-    </div>
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        marginLeft: 8, background: 'transparent',
+        border: `1px solid ${hovered ? '#7c5cbf' : '#2c2c32'}`,
+        borderRadius: 5, color: hovered ? '#fff' : '#8e8e9a',
+        cursor: 'pointer', fontSize: 11, padding: '3px 10px',
+        transition: 'border-color 0.15s, color 0.15s',
+      }}
+    >
+      Open Settings
+    </button>
   )
 }

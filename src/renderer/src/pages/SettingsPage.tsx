@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react'
 import type { Settings, SubPage } from '../App'
 
 declare const window: Window & {
-  api: { browse: () => Promise<string | null> }
+  api: {
+    browse: () => Promise<string | null>
+    detectOverwolf: () => Promise<string | null>
+  }
 }
 
 interface Props {
@@ -20,25 +23,43 @@ export function SettingsPage({ sub, settings, onSave }: Props) {
 /* ─── General ──────────────────────────────────────────────── */
 
 function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s: Settings) => Promise<void> }) {
-  const [path, setPath] = useState(settings.blitzPath)
+  const [blitzPath, setBlitzPath] = useState(settings.blitzPath)
+  const [valorantPath, setValorantPath] = useState(settings.valorantTrackerPath)
   const [interval, setInterval] = useState(settings.pollingInterval)
-  const [saving, setSaving] = useState(false)
-  const pathValid = !path || path.toLowerCase().endsWith('.exe')
+  const [savingBlitz, setSavingBlitz] = useState(false)
+  const [savingValorant, setSavingValorant] = useState(false)
+  const blitzPathValid = !blitzPath || blitzPath.toLowerCase().endsWith('.exe')
+  const valorantPathValid = !valorantPath || valorantPath.toLowerCase().endsWith('.exe')
 
-  // Sync if parent settings change
-  useEffect(() => { setPath(settings.blitzPath) }, [settings.blitzPath])
+  useEffect(() => { setBlitzPath(settings.blitzPath) }, [settings.blitzPath])
+  useEffect(() => { setValorantPath(settings.valorantTrackerPath) }, [settings.valorantTrackerPath])
   useEffect(() => { setInterval(settings.pollingInterval) }, [settings.pollingInterval])
 
-  const handleBrowse = async () => {
+  const handleBrowse = async (setter: (v: string) => void) => {
     const p = await window.api.browse()
-    if (p) setPath(p)
+    if (p) setter(p)
   }
 
-  const handleUpdatePath = async () => {
-    if (!pathValid) return
-    setSaving(true)
-    await onSave({ ...settings, blitzPath: path })
-    setSaving(false)
+  const handleUpdateBlitz = async () => {
+    if (!blitzPathValid) return
+    setSavingBlitz(true)
+    await onSave({ ...settings, blitzPath })
+    setSavingBlitz(false)
+  }
+
+  const handleUpdateValorant = async () => {
+    if (!valorantPathValid) return
+    setSavingValorant(true)
+    await onSave({ ...settings, valorantTrackerPath: valorantPath })
+    setSavingValorant(false)
+  }
+
+  const handleAutoDetectOverwolf = async () => {
+    const p = await window.api.detectOverwolf()
+    if (p) {
+      setValorantPath(p)
+      await onSave({ ...settings, valorantTrackerPath: p })
+    }
   }
 
   const handleUpdateInterval = async (v: number) => {
@@ -47,72 +68,76 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
   }
 
   return (
-    <div style={{ padding: '32px 36px', flex: 1 }}>
+    <div style={{ padding: '32px 36px', flex: 1, overflowY: 'auto' }}>
       <PageHeading>General</PageHeading>
 
-      <SectionHeading>App basics</SectionHeading>
+      {/* ── League of Legends / Blitz ── */}
+      <SectionHeading>League of Legends</SectionHeading>
 
-      {/* Blitz path */}
       <SettingRow label="Blitz path">
         <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 420 }}>
           <input
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
+            value={blitzPath}
+            onChange={(e) => setBlitzPath(e.target.value)}
             placeholder="C:\...\Blitz.exe"
             style={{
-              flex: 1,
-              background: '#28282d',
-              border: `1px solid ${pathValid ? '#3a3a3e' : '#c0392b'}`,
-              borderRadius: 6,
-              padding: '6px 10px',
-              color: '#ffffff',
-              fontSize: 12,
-              outline: 'none',
+              flex: 1, background: '#28282d',
+              border: `1px solid ${blitzPathValid ? '#3a3a3e' : '#c0392b'}`,
+              borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
             }}
           />
-          <OutlinedButton onClick={handleUpdatePath} disabled={!pathValid || saving}>
-            {saving ? 'Saving…' : 'Update'}
+          <OutlinedButton onClick={handleUpdateBlitz} disabled={!blitzPathValid || savingBlitz}>
+            {savingBlitz ? 'Saving…' : 'Update'}
           </OutlinedButton>
         </div>
-        {!pathValid && path && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>
-            Must be a .exe file
-          </div>
+        {!blitzPathValid && blitzPath && (
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe file</div>
         )}
-        <button
-          onClick={handleBrowse}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#555560',
-            cursor: 'pointer',
-            fontSize: 11,
-            padding: '4px 0',
-            textAlign: 'left',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#8e8e9a' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = '#555560' }}
-        >
-          Browse…
-        </button>
+        <MutedButton onClick={() => handleBrowse(setBlitzPath)}>Browse…</MutedButton>
       </SettingRow>
 
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
 
-      {/* Polling interval */}
+      {/* ── Valorant / Valorant Tracker ── */}
+      <SectionHeading>Valorant</SectionHeading>
+
+      <SettingRow label="Valorant Tracker path">
+        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 420 }}>
+          <input
+            value={valorantPath}
+            onChange={(e) => setValorantPath(e.target.value)}
+            placeholder="C:\...\Overwolf.exe"
+            style={{
+              flex: 1, background: '#28282d',
+              border: `1px solid ${valorantPathValid ? '#3a3a3e' : '#c0392b'}`,
+              borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
+            }}
+          />
+          <OutlinedButton onClick={handleUpdateValorant} disabled={!valorantPathValid || savingValorant}>
+            {savingValorant ? 'Saving…' : 'Update'}
+          </OutlinedButton>
+        </div>
+        {!valorantPathValid && valorantPath && (
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe file</div>
+        )}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <MutedButton onClick={() => handleBrowse(setValorantPath)}>Browse…</MutedButton>
+          <MutedButton onClick={handleAutoDetectOverwolf}>Auto-detect</MutedButton>
+        </div>
+      </SettingRow>
+
+      <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
+
+      {/* ── Polling interval ── */}
+      <SectionHeading>App</SectionHeading>
+
       <SettingRow label="Polling interval">
         <select
           value={interval}
           onChange={(e) => handleUpdateInterval(Number(e.target.value))}
           style={{
-            background: '#28282d',
-            border: '1px solid #3a3a3e',
-            borderRadius: 6,
-            padding: '6px 10px',
-            color: '#ffffff',
-            fontSize: 12,
-            cursor: 'pointer',
-            outline: 'none',
+            background: '#28282d', border: '1px solid #3a3a3e', borderRadius: 6,
+            padding: '6px 10px', color: '#ffffff', fontSize: 12, cursor: 'pointer', outline: 'none',
           }}
         >
           {[1, 2, 3, 5, 10].map((s) => (
@@ -121,6 +146,19 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
         </select>
       </SettingRow>
     </div>
+  )
+}
+
+function MutedButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ background: 'transparent', border: 'none', color: '#555560', cursor: 'pointer', fontSize: 11, padding: '4px 0', textAlign: 'left' }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = '#8e8e9a' }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = '#555560' }}
+    >
+      {children}
+    </button>
   )
 }
 
