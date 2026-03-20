@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install)",
+      "Bash(python3 -c \"from PIL import Image; print\\(''PIL ok''\\)\")",
+      "Bash(python3 -c \"from PIL import Image; print\\(''ok''\\)\")",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx asar list \"/c/Users/erik_/AppData/Local/Programs/riot-companion-helper/resources/app.asar\")",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx asar extract-file \"/c/Users/erik_/AppData/Local/Programs/riot-companion-helper/resources/app.asar\" \"out/renderer/renderer/index.html\" /tmp/installed-index.html)",
+      "Read(//tmp/**)",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx asar extract-file \"/c/Users/erik_/AppData/Local/Programs/riot-companion-helper/resources/app.asar\" \"out\\\\renderer\\\\renderer\\\\index.html\" /tmp/installed-index.html)",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx asar extract \"/c/Users/erik_/AppData/Local/Programs/riot-companion-helper/resources/app.asar\" \"/tmp/extracted-asar\")",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx asar pack /tmp/asar-debug \"dist/win-unpacked/resources/app.asar\")"
+    ]
+  }
+}

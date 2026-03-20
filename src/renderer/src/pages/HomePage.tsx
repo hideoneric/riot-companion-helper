@@ -1,0 +1,152 @@
+import React, { useEffect, useRef } from 'react'
+import type { AppState, LogEntry } from '../App'
+
+interface Props {
+  appState: AppState
+  logs: LogEntry[]
+  onNavigateToSettings: () => void
+}
+
+const levelColor: Record<LogEntry['level'], string> = {
+  info: '#8e8e9a',
+  warn: '#f0a500',
+  error: '#e53935',
+}
+
+export function HomePage({ appState, logs, onNavigateToSettings }: Props) {
+  const { leagueRunning, blitzRunning, monitoringEnabled, blitzPathSet } = appState
+  const topRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs.length])
+
+  const statusLabel = !blitzPathSet
+    ? 'WAITING FOR BLITZ PATH'
+    : !monitoringEnabled
+    ? 'MONITORING PAUSED'
+    : 'MONITORING ACTIVE'
+
+  const statusColor = !blitzPathSet ? '#f0a500' : !monitoringEnabled ? '#555560' : '#7c5cbf'
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+
+      {/* ── Monitoring status ── */}
+      <div style={{ padding: '24px 28px 20px', flexShrink: 0 }}>
+        <SectionHeading>Monitoring</SectionHeading>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: statusColor,
+              flexShrink: 0,
+              boxShadow: monitoringEnabled && blitzPathSet ? '0 0 8px #7c5cbf88' : 'none',
+            }}
+          />
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: statusColor }}>
+            {statusLabel}
+          </span>
+          {!blitzPathSet && (
+            <button
+              onClick={onNavigateToSettings}
+              style={{
+                marginLeft: 8,
+                background: 'transparent',
+                border: '1px solid #2c2c32',
+                borderRadius: 5,
+                color: '#8e8e9a',
+                cursor: 'pointer',
+                fontSize: 11,
+                padding: '3px 10px',
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#7c5cbf'; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2c2c32'; e.currentTarget.style.color = '#8e8e9a' }}
+            >
+              Open Settings
+            </button>
+          )}
+        </div>
+
+        {/* Process rows */}
+        <div style={{ background: '#28282d', borderRadius: 8, border: '1px solid #2c2c32', overflow: 'hidden' }}>
+          <ProcessRow label="League of Legends" running={leagueRunning} />
+          <div style={{ height: 1, background: '#2c2c32' }} />
+          <ProcessRow label="Blitz.gg" running={blitzRunning} />
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: '#2c2c32', flexShrink: 0 }} />
+
+      {/* ── Activity Log ── */}
+      <div style={{ flex: 1, padding: '20px 28px 24px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <SectionHeading>Activity Log</SectionHeading>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            background: '#28282d',
+            borderRadius: 8,
+            border: '1px solid #2c2c32',
+            padding: '10px 14px',
+            minHeight: 0,
+          }}
+        >
+          {logs.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#3a3a3e', fontSize: 12 }}>
+              No activity yet
+            </div>
+          ) : (
+            <>
+              <div ref={topRef} />
+              {logs.map((e, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, fontSize: 12, marginBottom: 5, lineHeight: 1.6 }}>
+                  <span style={{ color: '#3a3a3e', minWidth: 60, flexShrink: 0, fontFamily: 'monospace' }}>
+                    {e.timestamp}
+                  </span>
+                  <span style={{ color: levelColor[e.level] }}>{e.message}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 style={{ fontSize: 12, fontWeight: 600, color: '#ffffff', margin: '0 0 12px', paddingBottom: 8, borderBottom: '1px solid #2c2c32' }}>
+      {children}
+    </h2>
+  )
+}
+
+function ProcessRow({ label, running }: { label: string; running: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
+      <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            background: running ? '#4caf50' : '#3a3a3e',
+            boxShadow: running ? '0 0 6px #4caf5066' : 'none',
+            transition: 'background 0.3s, box-shadow 0.3s',
+          }}
+        />
+        <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
+          {running ? 'Running' : 'Not Running'}
+        </span>
+      </span>
+    </div>
+  )
+}
