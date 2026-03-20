@@ -68,8 +68,8 @@
     }
 
     @keyframes iconPulse {
-      0%,  100% { box-shadow: 0 0 18px rgba(124,92,191,0.40); }
-      50%        { box-shadow: 0 0 38px rgba(124,92,191,0.80); }
+      0%, 100% { opacity: 0.82; }
+      50%       { opacity: 1;    }
     }
 
     /* ── Scroll-reveal ─────────────────────────────────────── */
@@ -93,14 +93,12 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 clamp(20px, 5vw, 80px);
-      background: rgba(17, 17, 20, 0.65);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(17, 17, 20, 0.88);
       border-bottom: 1px solid rgba(44, 44, 50, 0.5);
-      transition: background 0.3s ease;
+      transition: background-color 0.3s ease;
     }
     header.scrolled {
-      background: rgba(17, 17, 20, 0.92);
+      background-color: rgba(17, 17, 20, 0.97);
     }
 
     .nav-logo {
@@ -130,11 +128,11 @@
       font-weight: 600;
       padding: 8px 18px;
       border-radius: 8px;
-      transition: background 0.2s, box-shadow 0.25s, transform 0.15s;
+      transition: background-color 0.2s, transform 0.15s;
       white-space: nowrap;
     }
     .nav-cta:hover {
-      background: var(--accent-light);
+      background-color: var(--accent-light);
       box-shadow: 0 0 22px var(--accent-glow);
       transform: translateY(-1px);
     }
@@ -167,15 +165,6 @@
       will-change: transform;
     }
 
-    /* Noise grain */
-    .hero::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-      pointer-events: none;
-      opacity: 0.55;
-    }
 
     .hero-content {
       position: relative;
@@ -193,6 +182,7 @@
       margin-bottom: 28px;
       animation: iconPulse 3.5s ease-in-out infinite, fadeUp 0.6s ease 0.05s forwards;
       opacity: 0;
+      will-change: opacity;
     }
 
     .hero-content h1 {
@@ -249,10 +239,10 @@
       font-weight: 700;
       padding: 13px 28px;
       border-radius: 10px;
-      transition: background 0.2s, box-shadow 0.25s, transform 0.15s;
+      transition: background-color 0.2s, transform 0.15s;
     }
     .btn-primary:hover {
-      background: var(--accent-light);
+      background-color: var(--accent-light);
       box-shadow: 0 8px 36px var(--accent-glow);
       transform: translateY(-2px);
     }
@@ -482,6 +472,12 @@
       color: var(--white);
     }
 
+    /* ── Stagger delays (CSS, no JS) ──────────────────────── */
+    .cards-grid .card:nth-child(2) { transition-delay: 0.1s; }
+    .cards-grid .card:nth-child(3) { transition-delay: 0.2s; }
+    .step:nth-child(2) { transition-delay: 0.12s; }
+    .step:nth-child(3) { transition-delay: 0.24s; }
+
     /* ── Responsive ────────────────────────────────────────── */
     @media (max-width: 640px) {
       .hero-buttons { flex-direction: column; align-items: stretch; }
@@ -695,15 +691,21 @@
   </footer>
 
   <script>
-    // Navbar scroll darkening — guarded to only toggle on threshold crossings
+    // Navbar scroll darkening — rAF-throttled, fires at most once per frame
     const header = document.getElementById('site-header')
     let headerScrolled = false
+    let rafPending = false
     window.addEventListener('scroll', () => {
-      const shouldScroll = window.scrollY > 20
-      if (shouldScroll !== headerScrolled) {
-        headerScrolled = shouldScroll
-        header.classList.toggle('scrolled', shouldScroll)
-      }
+      if (rafPending) return
+      rafPending = true
+      requestAnimationFrame(() => {
+        rafPending = false
+        const shouldScroll = window.scrollY > 20
+        if (shouldScroll !== headerScrolled) {
+          headerScrolled = shouldScroll
+          header.classList.toggle('scrolled', shouldScroll)
+        }
+      })
     }, { passive: true })
 
     // Scroll-reveal via IntersectionObserver
@@ -717,14 +719,6 @@
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
     )
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
-
-    // Staggered transition delay on cards and steps
-    document.querySelectorAll('.cards-grid .card').forEach((el, i) => {
-      el.style.transitionDelay = `${i * 0.1}s`
-    })
-    document.querySelectorAll('.step').forEach((el, i) => {
-      el.style.transitionDelay = `${i * 0.12}s`
-    })
   </script>
 
 </body>
