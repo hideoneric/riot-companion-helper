@@ -13,139 +13,92 @@
   <link rel="icon" href="./icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
-    }
-  }
-  </script>
+  <!-- fix: removed unused weights 400 and 500 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <style>
-    /* ── Design Tokens ──────────────────────────────────────── */
+    /* ── Design tokens ─────────────────────────────────────── */
     :root {
-      --bg-deep:      #0a0a0f;
-      --bg-surface:   #12121a;
-      --bg-elevated:  #1a1a24;
-      --accent:       #8b5cf6;
-      --accent-light: #a78bfa;
-      --accent-dim:   rgba(139, 92, 246, 0.12);
-      --accent-glow:  rgba(139, 92, 246, 0.25);
-      --green:        #4ade80;
-      --border:       rgba(255, 255, 255, 0.06);
-      --border-hover: rgba(255, 255, 255, 0.12);
-      --text-primary: #e4e4e7;
-      --text-muted:   #71717a;
-      --white:        #fafafa;
-      --radius-sm:    8px;
-      --radius-md:    12px;
-      --radius-lg:    16px;
-      --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
-      --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --bg-deep:          #111114;
+      --bg-surface:       #1a1a1e;
+      --accent:           #7c5cbf;
+      --accent-light:     #9d7de8;
+      --accent-lighter:   #c0a8ff;
+      --accent-purple-lg: #b49de6;
+      --accent-dim:       rgba(124, 92, 191, 0.15);
+      --accent-glow:      rgba(124, 92, 191, 0.50);
+      --green:            #4caf50;
+      --border:           #2c2c32;
+      --text-primary:     #d0d0d8;
+      --text-muted:       #8e8e9a;
+      --white:            #ffffff;
     }
 
-    /* ── Reset ──────────────────────────────────────────────── */
+    /* ── Reset ─────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { scroll-behavior: smooth; }
-
     body {
-      font-family: var(--font-body);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg-deep);
       color: var(--text-primary);
-      line-height: 1.65;
+      line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
 
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
-
-    a { text-decoration: none; color: inherit; }
+    a { color: inherit; text-decoration: none; }
     img { display: block; }
+    /* fix: was global ol {}, scoped to .steps only */
+    .steps { list-style: none; }
 
-    h1, h2, h3 { font-family: var(--font-display); }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
     /* ── Keyframes ─────────────────────────────────────────── */
-    @keyframes fadeBlurUp {
-      from { opacity: 0; transform: translateY(24px); filter: blur(6px); }
-      to   { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+    @keyframes aurora {
+      0%   { transform: scale(1)    rotate(0deg);  }
+      50%  { transform: scale(1.12) rotate(4deg);  }
+      100% { transform: scale(0.94) rotate(-3deg); }
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
+      from { opacity: 0; transform: translateY(28px); }
       to   { opacity: 1; transform: translateY(0);    }
     }
 
-    @keyframes navSlideDown {
-      from { transform: translateY(-100%); opacity: 0; }
-      to   { transform: translateY(0);     opacity: 1; }
+    @keyframes iconPulse {
+      0%, 100% { opacity: 0.82; }
+      50%       { opacity: 1;    }
     }
 
-    @keyframes subtlePulse {
-      0%, 100% { opacity: 1; }
-      50%      { opacity: 0.6; }
-    }
-
-    /* ── Scroll-Reveal ─────────────────────────────────────── */
+    /* ── Scroll-reveal ─────────────────────────────────────── */
     .reveal {
       opacity: 0;
-      transform: translateY(28px);
-      transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
     }
     .reveal.visible {
       opacity: 1;
       transform: translateY(0);
     }
 
-    /* ── Stagger delays ────────────────────────────────────── */
-    .features-grid > :nth-child(2) { transition-delay: 0.15s; }
-    .features-grid > :nth-child(3) { transition-delay: 0.3s; }
-    .steps-grid > :nth-child(2) { transition-delay: 0.15s; }
-    .steps-grid > :nth-child(3) { transition-delay: 0.3s; }
-
-    /* ── Canvas ────────────────────────────────────────────── */
-    #hero-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    /* ── Navigation ────────────────────────────────────────── */
-    .nav {
+    /* ── Header ────────────────────────────────────────────── */
+    header {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
-      height: 64px;
-      animation: navSlideDown 0.6s var(--ease-out) forwards;
-      transition: background-color 0.4s ease, border-color 0.4s ease;
-      background: transparent;
-      border-bottom: 1px solid transparent;
-    }
-    .nav.scrolled {
-      background-color: rgba(10, 10, 15, 0.88);
-      border-bottom-color: var(--border);
-    }
-
-    .nav-inner {
-      max-width: 1120px;
-      margin: 0 auto;
+      height: 58px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
-      height: 100%;
+      padding: 0 clamp(20px, 5vw, 80px);
+      background: rgba(17, 17, 20, 0.88);
+      border-bottom: 1px solid rgba(44, 44, 50, 0.5);
+      transition: background-color 0.3s ease;
+    }
+    header.scrolled {
+      background-color: rgba(17, 17, 20, 0.97);
     }
 
     .nav-logo {
@@ -154,29 +107,16 @@
       gap: 10px;
     }
     .nav-logo img {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
     }
     .nav-logo span {
-      font-family: var(--font-display);
       font-size: 14px;
       font-weight: 600;
       color: var(--white);
+      letter-spacing: 0.01em;
     }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 36px;
-    }
-    .nav-links a {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      transition: color 0.2s ease;
-    }
-    .nav-links a:hover { color: var(--text-primary); }
 
     .nav-cta {
       display: inline-flex;
@@ -186,12 +126,14 @@
       color: var(--white);
       font-size: 13px;
       font-weight: 600;
-      padding: 9px 20px;
-      border-radius: var(--radius-sm);
-      transition: background-color 0.2s ease, transform 0.2s var(--ease-out);
+      padding: 8px 18px;
+      border-radius: 8px;
+      transition: background-color 0.2s, transform 0.15s;
+      white-space: nowrap;
     }
     .nav-cta:hover {
       background-color: var(--accent-light);
+      box-shadow: 0 0 22px var(--accent-glow);
       transform: translateY(-1px);
     }
 
@@ -203,81 +145,88 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 140px 24px 120px;
+      padding: 100px clamp(20px, 5vw, 80px) 80px;
       overflow: hidden;
+      background: var(--bg-deep);
+      isolation: isolate; /* fix: contain blur from ::before to this stacking context */
     }
 
-    .hero::after {
+    /* Aurora blobs */
+    .hero::before {
       content: '';
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 240px;
-      background: linear-gradient(to bottom, transparent, var(--bg-deep));
-      z-index: 1;
-      pointer-events: none;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 85% 65% at 15% 35%,  rgba(124, 92, 191, 0.38)  0%, transparent 58%),
+        radial-gradient(ellipse 65% 85% at 82% 62%,  rgba(55,  35, 110, 0.28)  0%, transparent 58%),
+        radial-gradient(ellipse 110% 45% at 50% 100%, rgba(76, 175,  80, 0.09)  0%, transparent 48%);
+      animation: aurora 13s ease-in-out infinite alternate;
+      filter: blur(30px);
+      will-change: transform;
     }
+
 
     .hero-content {
       position: relative;
-      z-index: 2;
-      max-width: 700px;
+      z-index: 1;
+      max-width: 620px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--accent-light);
-      background: var(--accent-dim);
-      border: 1px solid rgba(139, 92, 246, 0.2);
+    .hero-icon {
+      width: 84px;
+      height: 84px;
       border-radius: 20px;
-      padding: 7px 18px;
-      margin-bottom: 36px;
-      animation: fadeBlurUp 0.7s var(--ease-out) 0.1s both;
-    }
-    .hero-badge .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent-light);
-      animation: subtlePulse 2.5s ease-in-out infinite;
+      margin-bottom: 28px;
+      animation: iconPulse 3.5s ease-in-out infinite, fadeUp 0.6s ease 0.05s forwards;
+      opacity: 0;
+      will-change: opacity;
     }
 
     .hero-content h1 {
-      font-size: clamp(2.4rem, 6vw, 3.8rem);
-      font-weight: 700;
+      font-size: clamp(2rem, 5.5vw, 3.4rem);
+      font-weight: 800;
       color: var(--white);
-      letter-spacing: -0.035em;
-      line-height: 1.1;
-      margin-bottom: 22px;
-      animation: fadeBlurUp 0.7s var(--ease-out) 0.2s both;
+      letter-spacing: -0.025em;
+      line-height: 1.12;
+      margin-bottom: 16px;
+      animation: fadeUp 0.6s ease 0.15s forwards;
+      opacity: 0;
     }
-    .hero-content h1 .gradient {
-      background: linear-gradient(135deg, var(--accent), var(--accent-light), #c4b5fd);
+
+    .hero-tagline {
+      font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+      font-weight: 600;
+      /* fix: was #b49de6, #7c5cbf, #9d7de8 hardcoded */
+      background: linear-gradient(95deg, var(--accent-purple-lg), var(--accent), var(--accent-light));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      margin-bottom: 14px;
+      animation: fadeUp 0.6s ease 0.25s forwards;
+      opacity: 0;
     }
 
     .hero-sub {
-      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      font-size: clamp(0.875rem, 1.8vw, 0.975rem);
       color: var(--text-muted);
-      max-width: 480px;
-      line-height: 1.7;
-      margin-bottom: 44px;
-      animation: fadeUp 0.7s var(--ease-out) 0.35s both;
+      max-width: 460px;
+      margin-bottom: 38px;
+      line-height: 1.75;
+      animation: fadeUp 0.6s ease 0.35s forwards;
+      opacity: 0;
     }
 
     .hero-buttons {
       display: flex;
-      gap: 14px;
-      margin-bottom: 36px;
-      animation: fadeUp 0.7s var(--ease-out) 0.45s both;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 26px;
+      animation: fadeUp 0.6s ease 0.45s forwards;
+      opacity: 0;
     }
 
     .btn-primary {
@@ -287,13 +236,14 @@
       background: var(--accent);
       color: var(--white);
       font-size: 14px;
-      font-weight: 600;
-      padding: 14px 28px;
-      border-radius: var(--radius-md);
-      transition: background-color 0.2s ease, transform 0.2s var(--ease-out);
+      font-weight: 700;
+      padding: 13px 28px;
+      border-radius: 10px;
+      transition: background-color 0.2s, transform 0.15s;
     }
     .btn-primary:hover {
       background-color: var(--accent-light);
+      box-shadow: 0 8px 36px var(--accent-glow);
       transform: translateY(-2px);
     }
 
@@ -304,755 +254,471 @@
       background: transparent;
       color: var(--text-primary);
       font-size: 14px;
-      font-weight: 500;
-      padding: 14px 28px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-hover);
-      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease, transform 0.2s var(--ease-out);
+      font-weight: 600;
+      padding: 13px 28px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      transition: border-color 0.2s, color 0.2s, background 0.2s, transform 0.15s;
     }
     .btn-outline:hover {
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: var(--accent);
       color: var(--white);
-      background-color: rgba(255, 255, 255, 0.03);
+      background: rgba(124, 92, 191, 0.09);
       transform: translateY(-2px);
     }
 
-    .hero-meta {
-      display: flex;
+    .hero-badge {
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 500;
+      gap: 8px;
+      font-size: 11.5px;
       color: var(--text-muted);
-      animation: fadeUp 0.7s var(--ease-out) 0.55s both;
+      background: rgba(44, 44, 50, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 16px;
+      animation: fadeUp 0.6s ease 0.55s forwards;
+      opacity: 0;
     }
-    .hero-meta .green-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
-    }
-    .hero-meta .sep { opacity: 0.3; }
 
-    /* ── Sections shared ───────────────────────────────────── */
+    /* ── Shared section layout ─────────────────────────────── */
     .section-inner {
-      max-width: 1040px;
+      max-width: 1020px;
       margin: 0 auto;
     }
 
     .section-header {
       text-align: center;
-      margin-bottom: 64px;
+      margin-bottom: clamp(32px, 5vw, 52px);
     }
-
-    .eyebrow {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      margin-bottom: 14px;
-    }
-
     .section-header h2 {
-      font-size: clamp(1.5rem, 3.5vw, 2.25rem);
-      font-weight: 600;
+      font-size: clamp(1.5rem, 3vw, 2.1rem);
+      font-weight: 700;
       color: var(--white);
-      letter-spacing: -0.025em;
-      margin-bottom: 14px;
+      letter-spacing: -0.015em;
+      margin-bottom: 10px;
     }
-
     .section-header p {
-      font-size: 15px;
+      font-size: 14.5px;
       color: var(--text-muted);
-      max-width: 420px;
-      margin: 0 auto;
-      line-height: 1.7;
     }
 
     /* ── Features ──────────────────────────────────────────── */
     .features {
-      padding: clamp(80px, 12vw, 140px) 24px;
-      background: var(--bg-deep);
-      position: relative;
-      z-index: 1;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .feature-card {
+      padding: clamp(64px, 9vw, 108px) clamp(20px, 5vw, 80px);
       background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 32px 28px;
-      transition: border-color 0.3s var(--ease-out), transform 0.3s var(--ease-out);
-    }
-    .feature-card:hover {
-      border-color: var(--border-hover);
-      transform: translateY(-3px);
     }
 
-    .feature-icon {
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(28, 28, 32, 0.92);
+      border: 1px solid rgba(124, 92, 191, 0.14);
+      border-radius: 16px;
+      padding: 30px 26px;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 14px 44px rgba(124, 92, 191, 0.17);
+      border-color: rgba(124, 92, 191, 0.32);
+    }
+
+    .card-icon {
       width: 44px;
       height: 44px;
-      border-radius: 11px;
-      background: var(--accent-dim);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 22px;
+      background: var(--accent-dim);
+      border-radius: 11px;
+      margin-bottom: 18px;
       color: var(--accent-light);
     }
-    .feature-icon svg { width: 22px; height: 22px; }
 
-    .feature-card h3 {
+    .card h3 {
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--white);
       margin-bottom: 10px;
     }
-    .feature-card p {
-      font-size: 14px;
+
+    .card p {
+      font-size: 13.5px;
       color: var(--text-muted);
       line-height: 1.7;
     }
 
-    /* ── How It Works ──────────────────────────────────────── */
+    /* ── How it works ──────────────────────────────────────── */
     .how-it-works {
-      padding: clamp(80px, 12vw, 140px) 24px;
-      background: var(--bg-surface);
+      padding: clamp(64px, 9vw, 108px) clamp(20px, 5vw, 80px);
+      background: var(--bg-deep);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      position: relative;
+    }
+
+    /* Connector line */
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: calc(16.67% + 20px);
+      right: calc(16.67% + 20px);
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent-dim) 20%, var(--accent-dim) 80%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .step {
+      position: relative;
+      padding: 28px 24px 24px;
+      text-align: center;
+    }
+
+    .step-bg-num {
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 6rem;
+      font-weight: 900;
+      color: rgba(44, 44, 50, 0.45);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: -0.05em;
+    }
+
+    .step-content {
       position: relative;
       z-index: 1;
+      padding-top: 46px;
     }
 
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1px;
-      background: var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-
-    .step-card {
-      background: var(--bg-surface);
-      padding: 40px 32px;
-    }
-
-    .step-number {
-      font-family: var(--font-display);
-      font-size: 48px;
+    .step-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1.5px solid rgba(124, 92, 191, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+      font-size: 12px;
       font-weight: 700;
-      color: rgba(139, 92, 246, 0.12);
-      line-height: 1;
-      margin-bottom: 20px;
+      color: var(--accent-light);
     }
 
-    .step-card h3 {
-      font-size: 15px;
-      font-weight: 600;
+    .step h3 {
+      font-size: 14.5px;
+      font-weight: 700;
       color: var(--white);
       margin-bottom: 8px;
     }
-    .step-card p {
-      font-size: 14px;
+
+    .step p {
+      font-size: 13px;
       color: var(--text-muted);
       line-height: 1.7;
     }
 
     /* ── Footer ────────────────────────────────────────────── */
     footer {
-      border-top: 1px solid var(--border);
-      padding: 32px 24px;
       background: var(--bg-deep);
-      position: relative;
-      z-index: 1;
-    }
-    .footer-inner {
-      max-width: 1040px;
-      margin: 0 auto;
+      border-top: 1px solid var(--border);
+      padding: 28px clamp(20px, 5vw, 80px);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
     }
+
     .footer-text {
       font-size: 13px;
       color: var(--text-muted);
     }
     .footer-text a {
-      color: var(--text-muted);
-      transition: color 0.15s ease;
+      color: var(--accent-light);
+      transition: color 0.15s;
     }
-    .footer-text a:hover { color: var(--accent-light); }
+    .footer-text a:hover {
+      color: var(--accent-lighter); /* fix: was hardcoded #c0a8ff */
+    }
 
     .footer-github {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 500;
+      gap: 7px;
+      font-size: 12.5px;
       color: var(--text-muted);
-      padding: 7px 14px;
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      transition: border-color 0.2s ease, color 0.2s ease;
+      border-radius: 8px;
+      padding: 7px 14px;
+      transition: border-color 0.2s, color 0.2s;
     }
     .footer-github:hover {
-      border-color: var(--border-hover);
+      border-color: var(--accent);
       color: var(--white);
     }
-    .footer-github svg { width: 15px; height: 15px; }
+
+    /* ── Stagger delays (CSS, no JS) ──────────────────────── */
+    .cards-grid .card:nth-child(2) { transition-delay: 0.1s; }
+    .cards-grid .card:nth-child(3) { transition-delay: 0.2s; }
+    .step:nth-child(2) { transition-delay: 0.12s; }
+    .step:nth-child(3) { transition-delay: 0.24s; }
 
     /* ── Responsive ────────────────────────────────────────── */
-    @media (max-width: 768px) {
-      .nav-links { display: none; }
-
-      .features-grid,
-      .steps-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .hero { padding: 120px 20px 80px; }
-
-      .hero-buttons { flex-direction: column; width: 100%; }
-      .hero-buttons a { justify-content: center; }
+    @media (max-width: 640px) {
+      .hero-buttons { flex-direction: column; align-items: stretch; }
+      .btn-primary, .btn-outline { justify-content: center; }
+      .steps::before { display: none; }
+      footer { flex-direction: column; align-items: flex-start; }
     }
 
     @media (max-width: 480px) {
       .nav-logo span { display: none; }
-      .footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
     }
   </style>
 </head>
-
 <body>
 
-  <!-- SVG symbol definitions -->
+  <!-- fix: GitHub mark extracted to reusable SVG symbol -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-    <symbol id="icon-github" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
-        0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
-        -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
-        .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
-        -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 4 0c1.53-1.04
-        2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87
-        3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38
-        A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+    <symbol id="icon-github" viewBox="0 0 16 16">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
     </symbol>
   </svg>
 
-  <!-- Three.js canvas -->
-  <canvas id="hero-canvas"></canvas>
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header id="site-header" role="banner">
+    <a href="#" class="nav-logo" aria-label="Riot Companion Helper home">
+      <img src="./icon.png" alt="Riot Companion Helper icon" width="24" height="24" />
+      <span>Riot Companion Helper</span>
+    </a>
+    <a
+      href="https://github.com/hideoneric/riot-companion-helper/releases/latest"
+      class="nav-cta"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Download Riot Companion Helper"
+    >
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+        <path d="M6.5 1v7.5M3 6l3.5 3.5L10 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M1 11.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      Download
+    </a>
+  </header>
 
-  <!-- Navigation -->
-  <nav class="nav" id="site-nav">
-    <div class="nav-inner">
-      <a href="#" class="nav-logo">
-        <img src="./icon.png" alt="Logo" width="26" height="26" />
-        <span>Riot Companion Helper</span>
-      </a>
-      <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#how-it-works">How it works</a>
-        <a href="https://github.com/hideoneric/riot-companion-helper" target="_blank" rel="noopener">GitHub</a>
-      </div>
-      <a href="https://github.com/hideoneric/riot-companion-helper/releases/latest" class="nav-cta magnetic" target="_blank" rel="noopener">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6.5 1.5v8M3 7l3.5 3.5L10 7"/><line x1="2" y1="11.5" x2="11" y2="11.5"/>
-        </svg>
-        Download
-      </a>
-    </div>
-  </nav>
-
-  <!-- Hero -->
-  <section class="hero">
+  <!-- ── Hero ────────────────────────────────────────────── -->
+  <section class="hero" aria-labelledby="hero-heading">
     <div class="hero-content">
-      <div class="hero-badge">
-        <span class="dot"></span>
-        v1.6.2 &middot; Latest Release
-      </div>
+      <img
+        src="./icon.png"
+        alt="Riot Companion Helper app icon"
+        class="hero-icon"
+        width="84"
+        height="84"
+      />
 
-      <h1>Your games start.<br><span class="gradient">Blitz follows.</span></h1>
+      <h1 id="hero-heading">Riot Companion<br>Helper</h1>
+
+      <p class="hero-tagline">Your games start. Blitz follows.</p>
 
       <p class="hero-sub">
-        Automatically launch and close Blitz.gg alongside
-        League of Legends and Valorant. No manual intervention. Ever.
+        Automatically launch and close Blitz.gg alongside League of Legends
+        and Valorant. No manual intervention. Ever.
       </p>
 
       <div class="hero-buttons">
-        <a href="https://github.com/hideoneric/riot-companion-helper/releases/latest" class="btn-primary magnetic" target="_blank" rel="noopener">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1v6h6V1h-6zm7 0v6h6V1h-6zm-7 7v6h6V8h-6zm7 0v6h6V8h-6z"/></svg>
+        <a
+          href="https://github.com/hideoneric/riot-companion-helper/releases/latest"
+          class="btn-primary"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Download Riot Companion Helper for Windows"
+        >
+          <!-- Windows logo -->
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M0 2.4L6.545 1.6V7.8H0V2.4ZM7.273 1.491L16 0V7.8H7.273V1.491ZM0 8.2H6.545V14.4L0 13.6V8.2ZM7.273 8.2H16V16L7.273 14.509V8.2Z"/>
+          </svg>
           Download for Windows
         </a>
-        <a href="https://github.com/hideoneric/riot-companion-helper" class="btn-outline magnetic" target="_blank" rel="noopener">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><use href="#icon-github"/></svg>
+        <a
+          href="https://github.com/hideoneric/riot-companion-helper"
+          class="btn-outline"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="View source on GitHub"
+        >
+          <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#icon-github"/></svg>
           View on GitHub
         </a>
       </div>
 
-      <div class="hero-meta">
-        <span class="green-dot"></span>
-        Windows 10/11
-        <span class="sep">&middot;</span>
-        Free
-        <span class="sep">&middot;</span>
-        Open Source
-      </div>
+      <span class="hero-badge" aria-label="Platform info">
+        <!-- fix: was stroke="#4caf50" hardcoded; now uses currentColor via CSS -->
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:var(--green)" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="5.75" stroke="currentColor" stroke-width="1.1"/>
+          <path d="M4 6.5l2 2 3.5-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Windows 10/11 &nbsp;&middot;&nbsp; Free &nbsp;&middot;&nbsp; Open Source
+      </span>
     </div>
   </section>
 
-  <!-- Features -->
-  <section class="features" id="features">
+  <!-- ── Features ────────────────────────────────────────── -->
+  <section class="features" aria-labelledby="features-heading">
     <div class="section-inner">
       <div class="section-header reveal">
-        <p class="eyebrow">Features</p>
-        <h2>What it does</h2>
+        <h2 id="features-heading">What it does</h2>
         <p>Three things, done automatically.</p>
       </div>
 
-      <div class="features-grid">
-        <article class="feature-card reveal">
-          <div class="feature-icon">
-            <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 2L5 13h6l-1 7 8-11h-6l1-7z"/>
+      <div class="cards-grid">
+
+        <article class="card reveal" aria-label="Auto-Launch feature">
+          <div class="card-icon" aria-hidden="true">
+            <!-- Lightning bolt -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L4.5 13.5H12L11 22L19.5 10.5H12L13 2Z"/>
             </svg>
           </div>
           <h3>Auto-Launch</h3>
-          <p>Detects League of Legends and Valorant. Launches Blitz.gg the moment either game starts.</p>
+          <p>Detects League of Legends and Valorant. Launches Blitz.gg the moment any game starts.</p>
         </article>
 
-        <article class="feature-card reveal">
-          <div class="feature-icon">
-            <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-              <path d="M5 21l-4-4 4-4"/><path d="M19 11v2a4 4 0 0 1-4 4H1"/>
+        <article class="card reveal" aria-label="Smart Close feature">
+          <div class="card-icon" aria-hidden="true">
+            <!-- Cycle arrows -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 2l4 4-4 4"/>
+              <path d="M3 11V9a4 4 0 014-4h14"/>
+              <path d="M7 22l-4-4 4-4"/>
+              <path d="M21 13v2a4 4 0 01-4 4H3"/>
             </svg>
           </div>
           <h3>Smart Close</h3>
-          <p>Blitz stays open while any game is running. Only closes when every game has stopped.</p>
+          <p>Blitz stays open while any game is running. Only closes when all games are stopped.</p>
         </article>
 
-        <article class="feature-card reveal">
-          <div class="feature-icon">
-            <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 1L1 6l10 5 10-5-10-5z"/><path d="M1 11l10 5 10-5"/><path d="M1 16l10 5 10-5"/>
+        <article class="card reveal" aria-label="Zero Friction feature">
+          <div class="card-icon" aria-hidden="true">
+            <!-- Layers / stack -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
             </svg>
           </div>
           <h3>Zero Friction</h3>
-          <p>Runs silently in the system tray. Set it up once and never think about it again.</p>
+          <p>Runs silently in the system tray. Set it up once and forget it's there.</p>
         </article>
+
       </div>
     </div>
   </section>
 
-  <!-- How It Works -->
-  <section class="how-it-works" id="how-it-works">
+  <!-- ── How it works ─────────────────────────────────────── -->
+  <section class="how-it-works" aria-labelledby="how-heading">
     <div class="section-inner">
       <div class="section-header reveal">
-        <p class="eyebrow">Getting Started</p>
-        <h2>Up and running in minutes</h2>
-        <p>Three steps. No technical knowledge required.</p>
+        <h2 id="how-heading">How it works</h2>
+        <p>Up and running in under a minute.</p>
       </div>
 
-      <div class="steps-grid">
-        <div class="step-card reveal">
-          <div class="step-number">01</div>
-          <h3>Install the app</h3>
-          <p>Run the setup wizard. No admin rights needed.</p>
-        </div>
-        <div class="step-card reveal">
-          <div class="step-number">02</div>
-          <h3>Set your Blitz path</h3>
-          <p>Point the app to your Blitz.exe once in Settings.</p>
-        </div>
-        <div class="step-card reveal">
-          <div class="step-number">03</div>
-          <h3>Play your game</h3>
-          <p>Launch League or Valorant. Blitz opens and closes automatically.</p>
-        </div>
-      </div>
+      <ol class="steps" aria-label="Setup steps">
+
+        <li class="step reveal">
+          <span class="step-bg-num" aria-hidden="true">1</span>
+          <div class="step-content">
+            <div class="step-dot" aria-hidden="true">1</div>
+            <h3>Install the app</h3>
+            <p>Run the setup wizard. No admin rights needed. Starts in under 30 seconds.</p>
+          </div>
+        </li>
+
+        <li class="step reveal">
+          <span class="step-bg-num" aria-hidden="true">2</span>
+          <div class="step-content">
+            <div class="step-dot" aria-hidden="true">2</div>
+            <h3>Set your Blitz path</h3>
+            <p>Point the app to Blitz.exe once in Settings. It remembers forever.</p>
+          </div>
+        </li>
+
+        <li class="step reveal">
+          <span class="step-bg-num" aria-hidden="true">3</span>
+          <div class="step-content">
+            <div class="step-dot" aria-hidden="true">3</div>
+            <h3>Play your game</h3>
+            <p>Launch League or Valorant. Blitz opens automatically — and closes when you're done.</p>
+          </div>
+        </li>
+
+      </ol>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer>
-    <div class="footer-inner">
-      <p class="footer-text">
-        Built by <a href="https://github.com/hideoneric" target="_blank" rel="noopener">hideoneric</a>
-        &middot; Open Source &middot; v1.6.2
-      </p>
-      <a href="https://github.com/hideoneric/riot-companion-helper" class="footer-github" target="_blank" rel="noopener">
-        <svg viewBox="0 0 16 16" fill="currentColor"><use href="#icon-github"/></svg>
-        GitHub
-      </a>
-    </div>
+  <!-- ── Footer ──────────────────────────────────────────── -->
+  <footer role="contentinfo">
+    <p class="footer-text">
+      Built by
+      <a href="https://github.com/hideoneric" target="_blank" rel="noopener noreferrer">hideoneric</a>
+      &nbsp;&middot;&nbsp; Open Source on GitHub &nbsp;&middot;&nbsp; v1.6.2
+    </p>
+    <a
+      href="https://github.com/hideoneric/riot-companion-helper"
+      class="footer-github"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="View source on GitHub"
+    >
+      <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#icon-github"/></svg>
+      GitHub
+    </a>
   </footer>
 
-  <script type="module">
-    // ── Three.js: Glossy Metallic Star-Bolt ───────────────────
-    import * as THREE from 'three';
-    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-    await new Promise(r => {
-      if (document.readyState === 'complete') r();
-      else window.addEventListener('load', r);
-    });
-
-    const canvas = document.getElementById('hero-canvas');
-    const isMobile = window.innerWidth < 768;
-    const w = window.innerWidth || 800;
-    const h = window.innerHeight || 600;
-
-    // ── Renderer ──────────────────────────────────────────────
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(w, h);
-    renderer.setClearColor(0x000000, 0);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
-    camera.position.z = 7;
-
-    // ── Environment Map (critical for metallic reflections) ───
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const envMap = pmremGenerator.fromScene(new RoomEnvironment()).texture;
-    scene.environment = envMap;
-    pmremGenerator.dispose();
-
-    // ── Bloom ─────────────────────────────────────────────────
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(w, h),
-      isMobile ? 0.5 : 0.7,
-      0.5,
-      0.6
-    );
-    composer.addPass(bloomPass);
-
-    // ── Lighting ──────────────────────────────────────────────
-    const keyLight = new THREE.PointLight(0xffffff, 80, 20);
-    keyLight.position.set(3, 3, 4);
-    scene.add(keyLight);
-
-    const fillLight = new THREE.PointLight(0xa78bfa, 40, 15);
-    fillLight.position.set(-4, 1, 2);
-    scene.add(fillLight);
-
-    const rimLight = new THREE.PointLight(0xc4b5fd, 50, 15);
-    rimLight.position.set(0, 4, -3);
-    scene.add(rimLight);
-
-    const bottomLight = new THREE.PointLight(0x6d28d9, 25, 10);
-    bottomLight.position.set(0, -3, 2);
-    scene.add(bottomLight);
-
-    scene.add(new THREE.AmbientLight(0x1a1025, 0.8));
-
-    const sceneGroup = new THREE.Group();
-    scene.add(sceneGroup);
-
-    // ── Star-Bolt Shape ───────────────────────────────────────
-    const shape = new THREE.Shape();
-
-    // Star-bolt silhouette: 6-pointed star top merging into lightning tail
-    // All curves use quadraticCurveTo for smooth rounded tips
-    shape.moveTo(0, 1.5);
-
-    // Upper-right tip
-    shape.quadraticCurveTo(0.15, 1.1, 0.25, 0.75);
-    shape.quadraticCurveTo(0.7, 0.65, 1.1, 0.55);
-
-    // Mid-right notch → right tip
-    shape.quadraticCurveTo(0.65, 0.35, 0.4, 0.18);
-    shape.quadraticCurveTo(0.65, -0.15, 0.75, -0.45);
-
-    // Lower-right notch → transition to bolt tail
-    shape.quadraticCurveTo(0.45, -0.35, 0.2, -0.35);
-
-    // Lightning bolt zigzag tail
-    shape.quadraticCurveTo(0.35, -0.65, 0.4, -0.85);
-    shape.quadraticCurveTo(0.15, -1.0, -0.05, -1.15);
-    shape.quadraticCurveTo(0.15, -1.35, 0.3, -1.55);
-    shape.quadraticCurveTo(0.15, -1.75, 0.0, -2.0);
-
-    // Mirror left side — tail back up
-    shape.quadraticCurveTo(-0.15, -1.75, -0.3, -1.55);
-    shape.quadraticCurveTo(-0.15, -1.35, 0.05, -1.15);
-    shape.quadraticCurveTo(-0.15, -1.0, -0.4, -0.85);
-    shape.quadraticCurveTo(-0.35, -0.65, -0.2, -0.35);
-
-    // Lower-left tip
-    shape.quadraticCurveTo(-0.45, -0.35, -0.75, -0.45);
-
-    // Mid-left notch → left tip
-    shape.quadraticCurveTo(-0.65, -0.15, -0.4, 0.18);
-    shape.quadraticCurveTo(-0.65, 0.35, -1.1, 0.55);
-
-    // Upper-left notch → back to top
-    shape.quadraticCurveTo(-0.7, 0.65, -0.25, 0.75);
-    shape.quadraticCurveTo(-0.15, 1.1, 0, 1.5);
-
-    const extrudeSettings = {
-      depth: 0.5,
-      bevelEnabled: true,
-      bevelThickness: 0.12,
-      bevelSize: 0.1,
-      bevelOffset: 0,
-      bevelSegments: 8,
-      curveSegments: 24
-    };
-
-    const boltGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    boltGeo.center();
-    boltGeo.computeVertexNormals();
-
-    const boltMat = new THREE.MeshPhysicalMaterial({
-      color: 0x8b5cf6,
-      metalness: 0.92,
-      roughness: 0.18,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.05,
-      reflectivity: 1.0,
-      envMapIntensity: 1.5,
-      emissive: 0x3b1a7a,
-      emissiveIntensity: 0.15
-    });
-
-    const boltMesh = new THREE.Mesh(boltGeo, boltMat);
-    const boltGroup = new THREE.Group();
-    boltGroup.add(boltMesh);
-
-    // ── Glow Shell ────────────────────────────────────────────
-    const glowGeo = boltGeo.clone();
-    glowGeo.scale(1.06, 1.06, 1.06);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0x8b5cf6,
-      transparent: true,
-      opacity: 0.06,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    boltGroup.add(new THREE.Mesh(glowGeo, glowMat));
-
-    sceneGroup.add(boltGroup);
-
-    // ── Ambient particles — sparse, subtle ────────────────────
-    const PARTICLE_COUNT = isMobile ? 100 : 200;
-    const pPos = new Float32Array(PARTICLE_COUNT * 3);
-    const pSizes = new Float32Array(PARTICLE_COUNT);
-    const pPhases = new Float32Array(PARTICLE_COUNT);
-    const pAngles = new Float32Array(PARTICLE_COUNT);
-    const pRadii = new Float32Array(PARTICLE_COUNT);
-    const pHeights = new Float32Array(PARTICLE_COUNT);
-    const pSpeeds = new Float32Array(PARTICLE_COUNT);
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const angle = (i / PARTICLE_COUNT) * Math.PI * 2 * 3;
-      const radius = 2.5 + Math.random() * 3.5;
-      const height = (Math.random() - 0.5) * 5;
-      pAngles[i] = angle;
-      pRadii[i] = radius;
-      pHeights[i] = height;
-      pSpeeds[i] = 0.3 + Math.random() * 0.8;
-      pSizes[i] = 1.0 + Math.random() * 2.0;
-      pPhases[i] = Math.random() * Math.PI * 2;
-      pPos[i * 3] = Math.cos(angle) * radius;
-      pPos[i * 3 + 1] = height;
-      pPos[i * 3 + 2] = Math.sin(angle) * radius;
-    }
-
-    const particleGeo = new THREE.BufferGeometry();
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    particleGeo.setAttribute('aSize', new THREE.BufferAttribute(pSizes, 1));
-    particleGeo.setAttribute('aPhase', new THREE.BufferAttribute(pPhases, 1));
-
-    const particleMat = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uColor: { value: new THREE.Color(0x8b5cf6) }
-      },
-      vertexShader: `
-        attribute float aSize;
-        attribute float aPhase;
-        uniform float uTime;
-        varying float vAlpha;
-        void main() {
-          vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-          float pulse = 0.5 + 0.5 * sin(uTime * 1.2 + aPhase);
-          vAlpha = pulse;
-          gl_PointSize = aSize * (120.0 / -mvPos.z) * pulse;
-          gl_Position = projectionMatrix * mvPos;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        varying float vAlpha;
-        void main() {
-          float d = length(gl_PointCoord - 0.5) * 2.0;
-          float alpha = smoothstep(1.0, 0.3, d) * vAlpha * 0.15;
-          if (alpha < 0.005) discard;
-          gl_FragColor = vec4(uColor, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    sceneGroup.add(new THREE.Points(particleGeo, particleMat));
-
-    // ── Mouse tracking ────────────────────────────────────────
-    let mouseX = 0, mouseY = 0;
-    const isTouch = 'ontouchstart' in window;
-    if (!isTouch) {
-      window.addEventListener('mousemove', (e) => {
-        mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-        mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-      }, { passive: true });
-    }
-
-    // ── Scroll state ──────────────────────────────────────────
-    let scrollProgress = 0;
-    const heroSection = document.querySelector('.hero');
-    const nav = document.getElementById('site-nav');
-
-    let scrollRaf = false;
+  <script>
+    // Navbar scroll darkening — rAF-throttled, fires at most once per frame
+    const header = document.getElementById('site-header')
+    let headerScrolled = false
+    let rafPending = false
     window.addEventListener('scroll', () => {
-      if (scrollRaf) return;
-      scrollRaf = true;
+      if (rafPending) return
+      rafPending = true
       requestAnimationFrame(() => {
-        scrollRaf = false;
-        const heroH = heroSection.offsetHeight;
-        scrollProgress = Math.min(window.scrollY / heroH, 1);
-        nav.classList.toggle('scrolled', window.scrollY > 40);
-      });
-    }, { passive: true });
+        rafPending = false
+        const shouldScroll = window.scrollY > 20
+        if (shouldScroll !== headerScrolled) {
+          headerScrolled = shouldScroll
+          header.classList.toggle('scrolled', shouldScroll)
+        }
+      })
+    }, { passive: true })
 
-    // ── Animation loop ────────────────────────────────────────
-    let animId;
-    const clock = new THREE.Clock();
-    let elapsed = 0;
-    let currentCamZ = 7;
-    let currentRotY = 0;
-    let currentScale = 1;
-    let currentTiltX = 0;
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function animate() {
-      animId = requestAnimationFrame(animate);
-      const dt = clock.getDelta();
-      elapsed += dt;
-
-      // Skip if fully scrolled away
-      if (scrollProgress > 0.95) { canvas.style.opacity = '0'; return; }
-
-      // ── Scroll-driven transforms ────────────────────────────
-      const sf = Math.max(0, (scrollProgress - 0.1) / 0.8);
-      const targetZ = 7 + sf * 6;
-      const targetRot = sf * Math.PI * 0.35;
-      const targetScale = 1.0 + sf * 0.3;
-      const targetTiltX = sf * Math.PI * 0.2;
-
-      currentCamZ += (targetZ - currentCamZ) * 0.05;
-      currentRotY += (targetRot - currentRotY) * 0.05;
-      currentScale += (targetScale - currentScale) * 0.05;
-      currentTiltX += (targetTiltX - currentTiltX) * 0.05;
-
-      camera.position.z = currentCamZ;
-      canvas.style.opacity = String(Math.max(0, 1 - scrollProgress * 1.4));
-
-      // Bolt: continuous rotation + gentle float + scroll scale/tilt
-      boltGroup.rotation.y += 0.003;
-      boltGroup.position.y = Math.sin(elapsed * 0.7) * 0.08;
-      boltGroup.scale.setScalar(currentScale);
-      boltGroup.rotation.x = currentTiltX;
-
-      // Mouse parallax + scroll rotation
-      if (isTouch) {
-        sceneGroup.rotation.y = Math.sin(elapsed * 0.25) * 0.12 + currentRotY;
-        sceneGroup.rotation.x = Math.sin(elapsed * 0.18) * 0.06;
-      } else {
-        sceneGroup.rotation.y += (mouseX * 0.3 + currentRotY - sceneGroup.rotation.y) * 0.04;
-        sceneGroup.rotation.x += (mouseY * 0.15 - sceneGroup.rotation.x) * 0.04;
-      }
-
-      // Particles
-      particleMat.uniforms.uTime.value = elapsed;
-      const pos = particleGeo.attributes.position.array;
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        pAngles[i] += pSpeeds[i] * 0.001;
-        pos[i * 3] = Math.cos(pAngles[i]) * pRadii[i];
-        pos[i * 3 + 1] = pHeights[i] + Math.sin(elapsed * 0.5 + i * 0.2) * 0.05;
-        pos[i * 3 + 2] = Math.sin(pAngles[i]) * pRadii[i];
-      }
-      particleGeo.attributes.position.needsUpdate = true;
-
-      // Render with bloom
-      composer.render();
-    }
-
-    // ── Visibility pause ──────────────────────────────────────
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { cancelAnimationFrame(animId); clock.stop(); }
-      else { clock.start(); animate(); }
-    });
-
-    // ── Resize ────────────────────────────────────────────────
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        const nw = window.innerWidth, nh = window.innerHeight;
-        camera.aspect = nw / nh;
-        camera.updateProjectionMatrix();
-        renderer.setSize(nw, nh);
-        composer.setSize(nw, nh);
-      }, 150);
-    });
-
-    // ── Start ─────────────────────────────────────────────────
-    if (!prefersReducedMotion) animate();
-    else composer.render();
-
-    // ── Scroll-Reveal ─────────────────────────────────────────
+    // Scroll-reveal via IntersectionObserver
     const observer = new IntersectionObserver(
       entries => entries.forEach(e => {
         if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          observer.unobserve(e.target);
+          e.target.classList.add('visible')
+          observer.unobserve(e.target)
         }
       }),
-      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
-    );
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    // ── Magnetic CTA buttons ──────────────────────────────────
-    if (!isTouch) {
-      document.querySelectorAll('.magnetic').forEach(btn => {
-        btn.addEventListener('mousemove', (e) => {
-          const rect = btn.getBoundingClientRect();
-          const dx = e.clientX - (rect.left + rect.width / 2);
-          const dy = e.clientY - (rect.top + rect.height / 2);
-          btn.style.transform = `translate(${dx * 0.12}px, ${dy * 0.12}px)`;
-          btn.style.transition = 'transform 0.15s ease-out';
-        });
-        btn.addEventListener('mouseleave', () => {
-          btn.style.transform = '';
-          btn.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        });
-      });
-    }
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    )
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
   </script>
 
 </body>
