@@ -16,7 +16,7 @@ const levelColor: Record<LogEntry['level'], string> = {
 }
 
 export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateToSettings }: Props) {
-  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet, leagueEnabled, valorantEnabled, porofessorRunning, porofessorPathSet } = appState
+  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet, leagueEnabled, valorantEnabled, blitzEnabled, porofessorRunning, porofessorPathSet, porofessorEnabled } = appState
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -75,6 +75,8 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateT
                 <CompanionRow
                   label="Blitz.gg"
                   running={blitzRunning}
+                  enabled={blitzEnabled}
+                  onToggle={() => onSaveSettings({ ...settings, blitzEnabled: !settings.blitzEnabled })}
                   onHide={() => onSaveSettings({ ...settings, blitzVisible: false })}
                 />
                 {settings.porofessorVisible && <Divider />}
@@ -84,6 +86,8 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateT
               <CompanionRow
                 label="Porofessor"
                 running={porofessorRunning}
+                enabled={porofessorEnabled}
+                onToggle={() => onSaveSettings({ ...settings, porofessorEnabled: !settings.porofessorEnabled })}
                 onHide={() => onSaveSettings({ ...settings, porofessorVisible: false })}
               />
             )}
@@ -220,30 +224,41 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-function CompanionRow({ label, running, onHide }: { label: string; running: boolean; onHide: () => void }) {
+function CompanionRow({ label, running, enabled, onToggle, onHide }: {
+  label: string
+  running: boolean
+  enabled: boolean
+  onToggle: () => void
+  onHide: () => void
+}) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
       style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '11px 16px',
+        padding: '11px 16px', opacity: enabled ? 1 : 0.5, transition: 'opacity 0.2s',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: running ? '#4caf50' : '#3a3a3e',
-            boxShadow: running ? '0 0 6px #4caf5066' : 'none',
-            transition: 'background 0.3s, box-shadow 0.3s',
-          }} />
-          <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
-            {running ? 'Running' : 'Not Running'}
+        <ToggleSwitch on={enabled} onToggle={onToggle} />
+        {enabled ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: running ? '#4caf50' : '#3a3a3e',
+              boxShadow: running ? '0 0 6px #4caf5066' : 'none',
+              transition: 'background 0.3s, box-shadow 0.3s',
+            }} />
+            <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
+              {running ? 'Running' : 'Not Running'}
+            </span>
           </span>
-        </span>
+        ) : (
+          <span style={{ fontSize: 12, color: '#3a3a3e', minWidth: 72 }}>Disabled</span>
+        )}
         <button
           onClick={onHide}
           title="Hide on Home page"

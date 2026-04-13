@@ -16,8 +16,10 @@ export interface PollerState {
   blitzPathSet: boolean
   leagueEnabled: boolean
   valorantEnabled: boolean
+  blitzEnabled: boolean
   porofessorRunning: boolean
   porofessorPathSet: boolean
+  porofessorEnabled: boolean
 }
 
 interface PollerOptions {
@@ -34,6 +36,7 @@ export class Poller {
   private monitoringEnabled = true
   private leagueEnabled = true
   private valorantEnabled = true
+  private blitzEnabled = true
   private anyEnabledWasRunning = false
   private consecutiveErrors = 0
   private intervalHandle: ReturnType<typeof setInterval> | null = null
@@ -53,8 +56,10 @@ export class Poller {
       s.blitzPathSet === state.blitzPathSet &&
       s.leagueEnabled === state.leagueEnabled &&
       s.valorantEnabled === state.valorantEnabled &&
+      s.blitzEnabled === state.blitzEnabled &&
       s.porofessorRunning === state.porofessorRunning &&
-      s.porofessorPathSet === state.porofessorPathSet
+      s.porofessorPathSet === state.porofessorPathSet &&
+      s.porofessorEnabled === state.porofessorEnabled
     ) return
     this.lastState = state
     this.opts.onStateChange(state)
@@ -139,7 +144,7 @@ export class Poller {
     if (anyEnabledRunning && !this.anyEnabledWasRunning) {
       if (this.opts.launcher.launchedPid) {
         this.log('Blitz.gg already running — skipping launch')
-      } else if (this._blitzPath) {
+      } else if (this._blitzPath && this.blitzEnabled) {
         this.log('Launching Blitz.gg')
         try {
           this.opts.launcher.launch(this._blitzPath)
@@ -186,16 +191,59 @@ export class Poller {
       blitzPathSet: !!this._blitzPath,
       leagueEnabled: this.leagueEnabled,
       valorantEnabled: this.valorantEnabled,
+      blitzEnabled: this.blitzEnabled,
       porofessorRunning: this.isPorofessorRunning(),
       porofessorPathSet: !!this._porofessorPath,
+      porofessorEnabled: this.porofessorEnabled,
     })
   }
 
   setBlitzPath(p: string) { this._blitzPath = p }
 
+  setBlitzEnabled(enabled: boolean) {
+    this.blitzEnabled = enabled
+    if (!enabled) {
+      this.opts.launcher.kill()
+      BlitzLauncher.killByName()
+      this.log('Blitz.gg disabled')
+    }
+    this.broadcastIfChanged({
+      leagueRunning: this.leagueWasRunning,
+      blitzRunning: this.isBlitzRunning(),
+      valorantRunning: this.valorantWasRunning,
+      monitoringEnabled: this.monitoringEnabled,
+      blitzPathSet: !!this._blitzPath,
+      leagueEnabled: this.leagueEnabled,
+      valorantEnabled: this.valorantEnabled,
+      blitzEnabled: this.blitzEnabled,
+      porofessorRunning: this.isPorofessorRunning(),
+      porofessorPathSet: !!this._porofessorPath,
+      porofessorEnabled: this.porofessorEnabled,
+    })
+  }
+
   setPorofessorPath(p: string) { this._porofessorPath = p }
 
-  setPorofessorEnabled(enabled: boolean) { this.porofessorEnabled = enabled }
+  setPorofessorEnabled(enabled: boolean) {
+    this.porofessorEnabled = enabled
+    if (!enabled) {
+      this.opts.porofessorLauncher.kill()
+      this.log('Porofessor disabled')
+    }
+    this.broadcastIfChanged({
+      leagueRunning: this.leagueWasRunning,
+      blitzRunning: this.isBlitzRunning(),
+      valorantRunning: this.valorantWasRunning,
+      monitoringEnabled: this.monitoringEnabled,
+      blitzPathSet: !!this._blitzPath,
+      leagueEnabled: this.leagueEnabled,
+      valorantEnabled: this.valorantEnabled,
+      blitzEnabled: this.blitzEnabled,
+      porofessorRunning: this.isPorofessorRunning(),
+      porofessorPathSet: !!this._porofessorPath,
+      porofessorEnabled: this.porofessorEnabled,
+    })
+  }
 
   setLeagueEnabled(enabled: boolean) { this.leagueEnabled = enabled }
 
@@ -218,8 +266,10 @@ export class Poller {
       blitzPathSet: !!this._blitzPath,
       leagueEnabled: this.leagueEnabled,
       valorantEnabled: this.valorantEnabled,
+      blitzEnabled: this.blitzEnabled,
       porofessorRunning: this.isPorofessorRunning(),
       porofessorPathSet: !!this._porofessorPath,
+      porofessorEnabled: this.porofessorEnabled,
     })
   }
 

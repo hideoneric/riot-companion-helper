@@ -97,8 +97,10 @@ app.whenReady().then(() => {
     blitzPathSet: !!settings.blitzPath,
     leagueEnabled: settings.leagueEnabled,
     valorantEnabled: settings.valorantEnabled,
+    blitzEnabled: settings.blitzEnabled,
     porofessorRunning: false,
     porofessorPathSet: !!settings.porofessorPath,
+    porofessorEnabled: settings.porofessorEnabled,
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race

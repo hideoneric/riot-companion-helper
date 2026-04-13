@@ -29,8 +29,10 @@ export interface AppState {
   blitzPathSet: boolean
   leagueEnabled: boolean
   valorantEnabled: boolean
+  blitzEnabled: boolean
   porofessorRunning: boolean
   porofessorPathSet: boolean
+  porofessorEnabled: boolean
 }
 
 export interface LogEntry {
@@ -46,6 +48,7 @@ export interface Settings {
   monitoringEnabled: boolean
   leagueEnabled: boolean
   valorantEnabled: boolean
+  blitzEnabled: boolean
   porofessorPath: string
   porofessorEnabled: boolean
   blitzVisible: boolean
@@ -73,8 +76,10 @@ export default function App() {
     blitzPathSet: false,
     leagueEnabled: true,
     valorantEnabled: true,
+    blitzEnabled: true,
     porofessorRunning: false,
     porofessorPathSet: false,
+    porofessorEnabled: true,
   })
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [updateDismissed, setUpdateDismissed] = useState(false)
@@ -86,6 +91,7 @@ export default function App() {
     monitoringEnabled: true,
     leagueEnabled: true,
     valorantEnabled: true,
+    blitzEnabled: true,
     porofessorPath: '',
     porofessorEnabled: true,
     blitzVisible: true,
