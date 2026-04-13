@@ -69,7 +69,7 @@ function SubNavItem({
         height: 36,
         background: active ? '#28282d' : hovered ? '#242428' : 'transparent',
         border: 'none',
-        borderLeft: active ? '2px solid #7c5cbf' : '2px solid transparent',
+        borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
         borderRight: 'none',
         borderTop: 'none',
         borderBottom: 'none',
