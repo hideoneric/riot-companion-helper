@@ -16,14 +16,14 @@ const levelColor: Record<LogEntry['level'], string> = {
 }
 
 export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateToSettings }: Props) {
-  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet, leagueEnabled, valorantEnabled } = appState
+  const { leagueRunning, blitzRunning, valorantRunning, monitoringEnabled, blitzPathSet, leagueEnabled, valorantEnabled, porofessorRunning, porofessorPathSet } = appState
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs.length])
 
-  const anyPathSet = blitzPathSet
+  const anyPathSet = blitzPathSet || porofessorPathSet
   const statusLabel = !anyPathSet
     ? 'WAITING FOR SETUP'
     : !monitoringEnabled
@@ -70,7 +70,34 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateT
           </GameGroup>
 
           <GameGroup title="COMPANION">
-            <ProcessRow label="Blitz.gg" running={blitzRunning} />
+            {settings.blitzVisible && (
+              <>
+                <CompanionRow
+                  label="Blitz.gg"
+                  running={blitzRunning}
+                  onHide={() => onSaveSettings({ ...settings, blitzVisible: false })}
+                />
+                {settings.porofessorVisible && <Divider />}
+              </>
+            )}
+            {settings.porofessorVisible && (
+              <CompanionRow
+                label="Porofessor"
+                running={porofessorRunning}
+                onHide={() => onSaveSettings({ ...settings, porofessorVisible: false })}
+              />
+            )}
+            {!settings.blitzVisible && !settings.porofessorVisible && (
+              <div style={{ padding: '11px 16px', fontSize: 12, color: '#555560' }}>
+                No helpers visible — restore in Settings → General
+              </div>
+            )}
+            {(settings.blitzVisible || settings.porofessorVisible) &&
+              (!settings.blitzVisible || !settings.porofessorVisible) && (
+              <div style={{ padding: '4px 16px 10px', fontSize: 11, color: '#3a3a3e' }}>
+                Restore hidden helpers in Settings → General
+              </div>
+            )}
           </GameGroup>
         </div>
       </div>
@@ -190,6 +217,51 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
     <h2 style={{ fontSize: 12, fontWeight: 600, color: '#ffffff', margin: '0 0 12px', paddingBottom: 8, borderBottom: '1px solid #2c2c32' }}>
       {children}
     </h2>
+  )
+}
+
+function CompanionRow({ label, running, onHide }: { label: string; running: boolean; onHide: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '11px 16px',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: running ? '#4caf50' : '#3a3a3e',
+            boxShadow: running ? '0 0 6px #4caf5066' : 'none',
+            transition: 'background 0.3s, box-shadow 0.3s',
+          }} />
+          <span style={{ fontSize: 12, color: running ? '#4caf50' : '#555560', minWidth: 72 }}>
+            {running ? 'Running' : 'Not Running'}
+          </span>
+        </span>
+        <button
+          onClick={onHide}
+          title="Hide on Home page"
+          style={{
+            width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none', borderRadius: 3, padding: 0,
+            cursor: 'pointer', color: hovered ? '#555560' : 'transparent',
+            transition: 'color 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+            <line x1="1" y1="1" x2="7" y2="7" />
+            <line x1="7" y1="1" x2="1" y2="7" />
+          </svg>
+        </button>
+      </span>
+    </div>
   )
 }
 

@@ -27,6 +27,8 @@ export interface AppState {
   blitzPathSet: boolean
   leagueEnabled: boolean
   valorantEnabled: boolean
+  porofessorRunning: boolean
+  porofessorPathSet: boolean
 }
 
 export interface LogEntry {
@@ -42,6 +44,10 @@ export interface Settings {
   monitoringEnabled: boolean
   leagueEnabled: boolean
   valorantEnabled: boolean
+  porofessorPath: string
+  porofessorEnabled: boolean
+  blitzVisible: boolean
+  porofessorVisible: boolean
 }
 
 export type Page = 'home' | 'settings'
@@ -58,6 +64,8 @@ export default function App() {
     blitzPathSet: false,
     leagueEnabled: true,
     valorantEnabled: true,
+    porofessorRunning: false,
+    porofessorPathSet: false,
   })
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>({
@@ -67,6 +75,10 @@ export default function App() {
     monitoringEnabled: true,
     leagueEnabled: true,
     valorantEnabled: true,
+    porofessorPath: '',
+    porofessorEnabled: true,
+    blitzVisible: true,
+    porofessorVisible: true,
   })
 
   useEffect(() => {

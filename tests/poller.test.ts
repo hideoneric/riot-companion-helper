@@ -12,6 +12,7 @@ describe('Poller state machine', () => {
   let onLog: ReturnType<typeof vi.fn>
   let onState: ReturnType<typeof vi.fn>
   let mockLauncher: BlitzLauncher
+  let mockPorofessorLauncher: BlitzLauncher
 
   beforeEach(() => {
     onLog = vi.fn()
@@ -19,7 +20,10 @@ describe('Poller state machine', () => {
     mockLauncher = new BlitzLauncher()
     vi.mocked(mockLauncher.launch).mockImplementation(() => {})
     vi.mocked(mockLauncher.kill).mockImplementation(() => {})
-    poller = new Poller({ launcher: mockLauncher, onLog, onStateChange: onState })
+    mockPorofessorLauncher = new BlitzLauncher()
+    vi.mocked(mockPorofessorLauncher.launch).mockImplementation(() => {})
+    vi.mocked(mockPorofessorLauncher.kill).mockImplementation(() => {})
+    poller = new Poller({ launcher: mockLauncher, porofessorLauncher: mockPorofessorLauncher, onLog, onStateChange: onState })
     vi.spyOn(child_process, 'execSync').mockReturnValue(Buffer.from(''))
   })
 

@@ -6,10 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev          # Start in development mode (hot-reload)
-npm run build        # Build all three targets (main, preload, renderer)
+npm run build        # Build all three targets (main, preload, renderer) → out/
+npm run build:unpack # Build + unpack to dir (faster than full installer, for local testing)
+npm run build:win    # Build + produce Windows installer (electron-builder)
 npm run package      # Build + produce installer in dist/
 npm run lint         # ESLint check
+npm run typecheck    # TypeScript type-check (node + web targets)
+npm run format       # Prettier format
+npm test             # Run tests once (vitest run)
+npm run test:watch   # Run tests in watch mode
+npm run icon         # Regenerate icon.ico from resources/icon.png (via sharp)
 ```
+
+Run a single test file: `npm test -- tests/poller.test.ts`
+
+Tests live in `tests/**/*.test.ts` and run in a Node environment. All system calls (`tasklist`, `spawn`, `execSync`) are mocked — no processes are actually spawned during tests.
 
 To create a GitHub release after packaging:
 ```bash
@@ -44,7 +55,7 @@ index.ts  →  Poller (tick every N seconds)
 - **`launcher.ts`**: `BlitzLauncher` (spawn/taskkill by PID+name). Supports `.lnk` shortcuts via `cmd /c start`.
 - **`ipc-handlers.ts`**: Owns `currentState` object. All IPC `handle`/`on` registrations except `window:minimize`, `window:hide`, `settings:open` which live in `index.ts`.
 - **`detector.ts`**: Auto-detect `Blitz.exe` path on disk.
-- **`settings-store.ts`**: `electron-store` v8 (v11+ is ESM-only, breaks CJS main process). Fields: `blitzPath`, `launchWithWindows`, `pollingInterval`, `monitoringEnabled`.
+- **`settings-store.ts`**: `electron-store` v8 (v11+ is ESM-only, breaks CJS main process). Fields: `blitzPath`, `launchWithWindows`, `pollingInterval`, `monitoringEnabled`, `leagueEnabled`, `valorantEnabled`.
 - **`tray.ts`**: System tray icon. Quit calls `app.quit()` which works because `index.ts` sets `isQuitting = true` in `before-quit`, allowing the close handler to proceed.
 - **`startup.ts`**: Windows registry (`HKCU\...\Run`) for launch-with-Windows.
 
@@ -70,7 +81,13 @@ Single-page layout (no router). `App.tsx` owns all state and passes it down:
 - **`Sidebar`**: Home / Settings navigation with active left-border accent
 - **`SubNav`**: shown only when Settings active (General / Behavior sub-pages)
 - **`HomePage`**: monitoring status badge + two grouped process cards (GAMES: League+Valorant, COMPANION: Blitz) + scrollable activity log
-- **`SettingsPage`**: General (Blitz path, polling interval) and Behavior (monitoring toggle, launch with Windows)
+- **`SettingsPage`**: General (Blitz path, polling interval) and Behavior (monitoring toggle, launch with Windows, per-game toggles)
+
+`components/StatusPanel.tsx`, `components/ActivityLog.tsx`, and `components/Header.tsx` are unused legacy components superseded by the current layout. Do not delete them without confirming they are unreferenced.
+
+### Code style
+
+Prettier enforces: single quotes, no semicolons, 100-character line width, no trailing commas. Run `npm run format` before committing.
 
 ### Key constraints
 

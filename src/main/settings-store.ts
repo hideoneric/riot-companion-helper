@@ -7,6 +7,10 @@ export interface AppSettings {
   monitoringEnabled: boolean
   leagueEnabled: boolean
   valorantEnabled: boolean
+  porofessorPath: string
+  porofessorEnabled: boolean
+  blitzVisible: boolean
+  porofessorVisible: boolean
 }
 
 const DEFAULTS: AppSettings = {
@@ -16,6 +20,10 @@ const DEFAULTS: AppSettings = {
   monitoringEnabled: true,
   leagueEnabled: true,
   valorantEnabled: true,
+  porofessorPath: '',
+  porofessorEnabled: true,
+  blitzVisible: true,
+  porofessorVisible: true,
 }
 
 const store = new Store<AppSettings>({ defaults: DEFAULTS })
@@ -28,6 +36,10 @@ export function getSettings(): AppSettings {
     monitoringEnabled: store.get('monitoringEnabled', DEFAULTS.monitoringEnabled),
     leagueEnabled: store.get('leagueEnabled', DEFAULTS.leagueEnabled),
     valorantEnabled: store.get('valorantEnabled', DEFAULTS.valorantEnabled),
+    porofessorPath: store.get('porofessorPath', DEFAULTS.porofessorPath),
+    porofessorEnabled: store.get('porofessorEnabled', DEFAULTS.porofessorEnabled),
+    blitzVisible: store.get('blitzVisible', DEFAULTS.blitzVisible),
+    porofessorVisible: store.get('porofessorVisible', DEFAULTS.porofessorVisible),
   }
 }
 
@@ -38,4 +50,8 @@ export function saveSettings(s: AppSettings): void {
   store.set('monitoringEnabled', s.monitoringEnabled)
   store.set('leagueEnabled', s.leagueEnabled)
   store.set('valorantEnabled', s.valorantEnabled)
+  store.set('porofessorPath', s.porofessorPath)
+  store.set('porofessorEnabled', s.porofessorEnabled)
+  store.set('blitzVisible', s.blitzVisible)
+  store.set('porofessorVisible', s.porofessorVisible)
 }

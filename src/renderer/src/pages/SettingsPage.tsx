@@ -27,11 +27,15 @@ function isValidPath(p: string): boolean {
 
 function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s: Settings) => Promise<void> }) {
   const [blitzPath, setBlitzPath] = useState(settings.blitzPath)
+  const [porofessorPath, setPorofessorPath] = useState(settings.porofessorPath)
   const [interval, setInterval] = useState(settings.pollingInterval)
   const [savingBlitz, setSavingBlitz] = useState(false)
+  const [savingPorofessor, setSavingPorofessor] = useState(false)
   const blitzPathValid = isValidPath(blitzPath)
+  const porofessorPathValid = isValidPath(porofessorPath)
 
   useEffect(() => { setBlitzPath(settings.blitzPath) }, [settings.blitzPath])
+  useEffect(() => { setPorofessorPath(settings.porofessorPath) }, [settings.porofessorPath])
   useEffect(() => { setInterval(settings.pollingInterval) }, [settings.pollingInterval])
 
   const handleBrowseBlitz = async () => {
@@ -39,11 +43,23 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
     if (p) setBlitzPath(p)
   }
 
+  const handleBrowsePorofessor = async () => {
+    const p = await window.api.browse()
+    if (p) setPorofessorPath(p)
+  }
+
   const handleUpdateBlitz = async () => {
     if (!blitzPathValid) return
     setSavingBlitz(true)
     await onSave({ ...settings, blitzPath })
     setSavingBlitz(false)
+  }
+
+  const handleUpdatePorofessor = async () => {
+    if (!porofessorPathValid) return
+    setSavingPorofessor(true)
+    await onSave({ ...settings, porofessorPath })
+    setSavingPorofessor(false)
   }
 
   const handleUpdateInterval = async (v: number) => {
@@ -55,10 +71,11 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
     <div style={{ padding: '32px 36px', flex: 1, overflowY: 'auto' }}>
       <PageHeading>General</PageHeading>
 
-      {/* ── Companion ── */}
-      <SectionHeading>Companion</SectionHeading>
+      {/* ── Helpers ── */}
+      <SectionHeading>Helpers</SectionHeading>
 
-      <SettingRow label="Blitz path">
+      {/* Blitz */}
+      <SettingRow label="Blitz.gg path">
         <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
           <input
             value={blitzPath}
@@ -80,6 +97,44 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
         )}
         <MutedButton onClick={handleBrowseBlitz}>Browse…</MutedButton>
       </SettingRow>
+
+      <VisibilityToggleRow
+        label="Show on Home page"
+        on={settings.blitzVisible}
+        onToggle={() => onSave({ ...settings, blitzVisible: !settings.blitzVisible })}
+      />
+
+      <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
+
+      {/* Porofessor */}
+      <SettingRow label={<span>Porofessor <span style={{ fontSize: 11, color: '#555560', fontWeight: 400 }}>(League only)</span></span>}>
+        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
+          <input
+            value={porofessorPath}
+            onChange={(e) => setPorofessorPath(e.target.value)}
+            placeholder="C:\...\Porofessor.exe"
+            style={{
+              flex: 1, background: '#28282d',
+              border: `1px solid ${porofessorPathValid ? '#3a3a3e' : '#c0392b'}`,
+              borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
+              minWidth: 0,
+            }}
+          />
+          <OutlinedButton onClick={handleUpdatePorofessor} disabled={!porofessorPathValid || savingPorofessor}>
+            {savingPorofessor ? 'Saving…' : 'Update'}
+          </OutlinedButton>
+        </div>
+        {!porofessorPathValid && porofessorPath && (
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe or .lnk file</div>
+        )}
+        <MutedButton onClick={handleBrowsePorofessor}>Browse…</MutedButton>
+      </SettingRow>
+
+      <VisibilityToggleRow
+        label="Show on Home page"
+        on={settings.porofessorVisible}
+        onToggle={() => onSave({ ...settings, porofessorVisible: !settings.porofessorVisible })}
+      />
 
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
 
@@ -237,13 +292,36 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
+function SettingRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {children}
       </div>
+    </div>
+  )
+}
+
+function VisibilityToggleRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, maxWidth: 560 }}>
+      <span style={{ fontSize: 12, color: '#8e8e9a' }}>{label}</span>
+      <button
+        onClick={onToggle}
+        title={on ? 'Hide' : 'Show'}
+        style={{
+          width: 30, height: 16, borderRadius: 8, border: 'none', padding: 0,
+          cursor: 'pointer', background: on ? '#7c5cbf' : '#3a3a3e',
+          position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+        }}
+      >
+        <span style={{
+          position: 'absolute', top: 2, left: on ? 16 : 2,
+          width: 12, height: 12, borderRadius: '50%', background: '#ffffff',
+          transition: 'left 0.2s',
+        }} />
+      </button>
     </div>
   )
 }

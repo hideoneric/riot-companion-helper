@@ -16,6 +16,7 @@ if (!app.requestSingleInstanceLock()) app.quit()
 
 let mainWindow: BrowserWindow | null = null
 const launcher = new BlitzLauncher()
+const porofessorLauncher = new BlitzLauncher()
 const logEntries: unknown[] = []
 
 function createMainWindow(): BrowserWindow {
@@ -70,6 +71,7 @@ app.whenReady().then(() => {
 
   const poller = new Poller({
     launcher,
+    porofessorLauncher,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -93,6 +95,8 @@ app.whenReady().then(() => {
     blitzPathSet: !!settings.blitzPath,
     leagueEnabled: settings.leagueEnabled,
     valorantEnabled: settings.valorantEnabled,
+    porofessorRunning: false,
+    porofessorPathSet: !!settings.porofessorPath,
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
@@ -103,9 +107,11 @@ app.whenReady().then(() => {
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
 
   poller.setBlitzPath(settings.blitzPath)
+  poller.setPorofessorPath(settings.porofessorPath)
+  poller.setPorofessorEnabled(settings.porofessorEnabled)
   poller.setLeagueEnabled(settings.leagueEnabled)
   poller.setValorantEnabled(settings.valorantEnabled)
-  if (settings.monitoringEnabled && settings.blitzPath) {
+  if (settings.monitoringEnabled && (settings.blitzPath || settings.porofessorPath)) {
     poller.startInterval(settings.pollingInterval)
   }
 
@@ -138,6 +144,7 @@ app.whenReady().then(() => {
   app.on('before-quit', () => {
     isQuitting = true
     if (launcher.launchedPid) launcher.kill()
+    if (porofessorLauncher.launchedPid) porofessorLauncher.kill()
   })
 
   app.on('window-all-closed', (e: Event) => e.preventDefault())
