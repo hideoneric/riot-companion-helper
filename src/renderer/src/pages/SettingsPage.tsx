@@ -155,6 +155,10 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
           ))}
         </select>
       </SettingRow>
+
+      {/* ── Appearance ── */}
+      <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
+      <AppearanceSection settings={settings} onSave={onSave} />
     </div>
   )
 }
@@ -402,5 +406,66 @@ function CheckboxRow({
       </span>
       <span onClick={onChange} style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
     </label>
+  )
+}
+
+const ACCENT_PRESETS = [
+  '#7c5cbf', '#3b82f6', '#06b6d4', '#10b981',
+  '#ef4444', '#f59e0b', '#ec4899', '#84cc16',
+]
+
+function AppearanceSection({
+  settings,
+  onSave,
+}: {
+  settings: Settings
+  onSave: (s: Settings) => Promise<void>
+}) {
+  const colorInputRef = React.useRef<HTMLInputElement>(null)
+  const isCustom = !ACCENT_PRESETS.includes(settings.themeColor)
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <SectionHeading>Appearance</SectionHeading>
+      <SettingRow label="Accent color">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {ACCENT_PRESETS.map((color) => {
+            const active = settings.themeColor === color
+            return (
+              <button
+                key={color}
+                onClick={() => onSave({ ...settings, themeColor: color })}
+                title={color}
+                style={{
+                  width: 24, height: 24, borderRadius: '50%', border: 'none',
+                  background: color, cursor: 'pointer', padding: 0, flexShrink: 0,
+                  outline: active ? '2px solid #ffffff' : '2px solid transparent',
+                  outlineOffset: 2,
+                }}
+              />
+            )
+          })}
+          {/* Custom swatch */}
+          <button
+            onClick={() => colorInputRef.current?.click()}
+            title="Custom color"
+            style={{
+              width: 24, height: 24, borderRadius: '50%', border: 'none',
+              background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
+              cursor: 'pointer', padding: 0, flexShrink: 0,
+              outline: isCustom ? '2px solid #ffffff' : '2px solid transparent',
+              outlineOffset: 2,
+            }}
+          />
+          <input
+            ref={colorInputRef}
+            type="color"
+            value={settings.themeColor}
+            onChange={(e) => onSave({ ...settings, themeColor: e.target.value })}
+            style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+          />
+        </div>
+      </SettingRow>
+    </div>
   )
 }
