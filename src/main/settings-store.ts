@@ -11,6 +11,7 @@ export interface AppSettings {
   porofessorEnabled: boolean
   blitzVisible: boolean
   porofessorVisible: boolean
+  themeColor: string
 }
 
 const DEFAULTS: AppSettings = {
@@ -24,6 +25,7 @@ const DEFAULTS: AppSettings = {
   porofessorEnabled: true,
   blitzVisible: true,
   porofessorVisible: true,
+  themeColor: '#7c5cbf',
 }
 
 const store = new Store<AppSettings>({ defaults: DEFAULTS })
@@ -40,6 +42,7 @@ export function getSettings(): AppSettings {
     porofessorEnabled: store.get('porofessorEnabled', DEFAULTS.porofessorEnabled),
     blitzVisible: store.get('blitzVisible', DEFAULTS.blitzVisible),
     porofessorVisible: store.get('porofessorVisible', DEFAULTS.porofessorVisible),
+    themeColor: store.get('themeColor', DEFAULTS.themeColor),
   }
 }
 
@@ -54,4 +57,5 @@ export function saveSettings(s: AppSettings): void {
   store.set('porofessorEnabled', s.porofessorEnabled)
   store.set('blitzVisible', s.blitzVisible)
   store.set('porofessorVisible', s.porofessorVisible)
+  store.set('themeColor', s.themeColor)
 }
