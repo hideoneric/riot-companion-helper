@@ -240,7 +240,7 @@ function BehaviorSettings({ settings, onSave }: { settings: Settings; onSave: (s
             onClick={handleSave}
             disabled={saving}
             style={{
-              background: '#7c5cbf',
+              background: 'var(--accent)',
               border: 'none',
               borderRadius: 6,
               padding: '7px 20px',
@@ -312,7 +312,7 @@ function VisibilityToggleRow({ label, on, onToggle }: { label: string; on: boole
         title={on ? 'Hide' : 'Show'}
         style={{
           width: 30, height: 16, borderRadius: 8, border: 'none', padding: 0,
-          cursor: 'pointer', background: on ? '#7c5cbf' : '#3a3a3e',
+          cursor: 'pointer', background: on ? 'var(--accent)' : '#3a3a3e',
           position: 'relative', flexShrink: 0, transition: 'background 0.2s',
         }}
       >
@@ -343,11 +343,11 @@ function OutlinedButton({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered && !disabled ? 'rgba(124,92,191,0.12)' : 'transparent',
-        border: `1px solid ${disabled ? '#3a3a3e' : '#7c5cbf'}`,
+        background: hovered && !disabled ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
+        border: `1px solid ${disabled ? '#3a3a3e' : 'var(--accent)'}`,
         borderRadius: 6,
         padding: '6px 14px',
-        color: disabled ? '#555560' : '#7c5cbf',
+        color: disabled ? '#555560' : 'var(--accent)',
         fontSize: 12,
         fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -385,8 +385,8 @@ function CheckboxRow({
           width: 16,
           height: 16,
           borderRadius: 3,
-          border: `1.5px solid ${checked ? '#7c5cbf' : '#3a3a3e'}`,
-          background: checked ? '#7c5cbf' : 'transparent',
+          border: `1.5px solid ${checked ? 'var(--accent)' : '#3a3a3e'}`,
+          background: checked ? 'var(--accent)' : 'transparent',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',

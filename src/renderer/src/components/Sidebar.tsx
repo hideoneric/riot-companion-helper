@@ -88,7 +88,7 @@ function NavItem({
         height: 40,
         background: active || hovered ? '#1a1a1e' : 'transparent',
         border: 'none',
-        borderLeft: `3px solid ${active ? '#7c5cbf' : 'transparent'}`,
+        borderLeft: `3px solid ${active ? 'var(--accent)' : 'transparent'}`,
         borderRight: 'none',
         borderTop: 'none',
         borderBottom: 'none',

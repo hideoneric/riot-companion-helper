@@ -226,7 +226,7 @@ function UpdateBanner({ version, onInstall, onDismiss }: {
         <button
           onClick={onInstall}
           style={{
-            background: '#7c5cbf', border: 'none', borderRadius: 4,
+            background: 'var(--accent)', border: 'none', borderRadius: 4,
             color: '#fff', fontSize: 11, fontWeight: 600,
             padding: '4px 10px', cursor: 'pointer',
           }}
