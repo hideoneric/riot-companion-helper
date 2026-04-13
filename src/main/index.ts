@@ -7,6 +7,7 @@ import { BlitzLauncher } from './launcher'
 import { Poller } from './poller'
 import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
+import { initUpdater, installUpdate } from './updater'
 
 app.setName('Riot Companion Helper')
 let isQuitting = false
@@ -38,6 +39,7 @@ function createMainWindow(): BrowserWindow {
 
   win.on('ready-to-show', () => {
     win.show()
+    if (!is.dev) initUpdater(win)
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -105,6 +107,7 @@ app.whenReady().then(() => {
   ipcMain.on('window:hide', () => mainWindow?.hide())
   // settings:open navigates the renderer to the settings page instead of opening a new window
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
+  ipcMain.on('update:install', () => installUpdate())
 
   poller.setBlitzPath(settings.blitzPath)
   poller.setPorofessorPath(settings.porofessorPath)

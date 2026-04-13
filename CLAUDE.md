@@ -96,3 +96,4 @@ Prettier enforces: single quotes, no semicolons, 100-character line width, no tr
 - **electron-store**: Pinned to v8. Do not upgrade to v11+.
 - **Icon path**: In production use `process.resourcesPath` (not `__dirname`-relative) because `resources/` sits outside the ASAR. Dev uses `path.join(__dirname, '../../resources/icon.ico')`.
 - **Poller startup condition**: Poller only starts if `monitoringEnabled && blitzPath`. If no path is set, the poller stays idle.
+- **Auto-updater**: `electron-updater` checks GitHub releases on startup (3s delay, prod only). `initUpdater()` lives in `src/main/updater.ts`. Always include `latest.yml` in releases — electron-builder generates it automatically alongside the installer. The `publish.provider` in `electron-builder.yml` must stay set to `github` or updates will break. In dev mode `initUpdater` is skipped entirely.

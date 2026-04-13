@@ -16,6 +16,8 @@ declare const window: Window & {
     saveSettings: (s: Settings) => Promise<void>
     browse: () => Promise<string | null>
     onNavigate: (cb: (page: string) => void) => () => void
+    onUpdateStatus: (cb: (s: UpdateStatus) => void) => () => void
+    installUpdate: () => void
   }
 }
 
@@ -53,6 +55,12 @@ export interface Settings {
 export type Page = 'home' | 'settings'
 export type SubPage = 'general' | 'behavior'
 
+export type UpdateStatus =
+  | { status: 'checking' | 'available' | 'not-available' }
+  | { status: 'downloading'; version: string; progress: number }
+  | { status: 'ready'; version: string }
+  | { status: 'error'; message: string }
+
 export default function App() {
   const [activePage, setActivePage] = useState<Page>('home')
   const [activeSubPage, setActiveSubPage] = useState<SubPage>('general')
@@ -67,6 +75,8 @@ export default function App() {
     porofessorRunning: false,
     porofessorPathSet: false,
   })
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
+  const [updateDismissed, setUpdateDismissed] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>({
     blitzPath: '',
@@ -93,7 +103,8 @@ export default function App() {
       const unsub3 = window.api.onNavigate((page) => {
         if (page === 'settings') setActivePage('settings')
       })
-      return () => { unsub1(); unsub2(); unsub3() }
+      const unsub4 = window.api.onUpdateStatus(setUpdateStatus)
+      return () => { unsub1(); unsub2(); unsub3(); unsub4() }
     } catch (err) {
       console.error('window.api error:', err)
     }
@@ -111,6 +122,15 @@ export default function App() {
         onMinimize={() => window.api.minimize()}
         onClose={() => window.api.hideToTray()}
       />
+
+      {/* Update banner — only shown when update is fully downloaded */}
+      {updateStatus?.status === 'ready' && !updateDismissed && (
+        <UpdateBanner
+          version={(updateStatus as { status: 'ready'; version: string }).version}
+          onInstall={() => window.api.installUpdate()}
+          onDismiss={() => setUpdateDismissed(true)}
+        />
+      )}
 
       {/* Body: sidebar + content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
@@ -173,6 +193,45 @@ function Titlebar({ onMinimize, onClose }: { onMinimize: () => void; onClose: ()
             <line x1="8" y1="1" x2="1" y2="8" />
           </svg>
         </TitleBtn>
+      </div>
+    </div>
+  )
+}
+
+function UpdateBanner({ version, onInstall, onDismiss }: {
+  version: string
+  onInstall: () => void
+  onDismiss: () => void
+}) {
+  return (
+    <div style={{
+      background: '#1e1433',
+      borderBottom: '1px solid rgba(124,92,191,0.3)',
+      padding: '6px 14px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexShrink: 0,
+    }}>
+      <span style={{ fontSize: 12, color: '#b39ddb' }}>v{version} available</span>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          onClick={onInstall}
+          style={{
+            background: '#7c5cbf', border: 'none', borderRadius: 4,
+            color: '#fff', fontSize: 11, fontWeight: 600,
+            padding: '4px 10px', cursor: 'pointer',
+          }}
+        >
+          Update &amp; Restart
+        </button>
+        <button
+          onClick={onDismiss}
+          style={{
+            background: 'transparent', border: 'none',
+            color: '#555560', cursor: 'pointer', fontSize: 13, padding: '0 2px',
+          }}
+        >✕</button>
       </div>
     </div>
   )

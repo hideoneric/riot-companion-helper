@@ -23,4 +23,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('navigate', handler)
     return () => ipcRenderer.removeListener('navigate', handler)
   },
+  onUpdateStatus: (cb: (s: unknown) => void) => {
+    const handler = (_e: unknown, s: unknown) => cb(s)
+    ipcRenderer.on('update:status', handler)
+    return () => ipcRenderer.removeListener('update:status', handler)
+  },
+  installUpdate: () => ipcRenderer.send('update:install'),
 })
