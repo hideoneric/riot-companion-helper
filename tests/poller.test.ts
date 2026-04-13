@@ -24,6 +24,7 @@ describe('Poller state machine', () => {
     vi.mocked(mockPorofessorLauncher.launch).mockImplementation(() => {})
     vi.mocked(mockPorofessorLauncher.kill).mockImplementation(() => {})
     poller = new Poller({ launcher: mockLauncher, porofessorLauncher: mockPorofessorLauncher, onLog, onStateChange: onState })
+    poller.setBlitzPath('C:\\mock\\Blitz.exe')
     vi.spyOn(child_process, 'execSync').mockReturnValue(Buffer.from(''))
   })
 
