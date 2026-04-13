@@ -50,6 +50,7 @@ export interface Settings {
   porofessorEnabled: boolean
   blitzVisible: boolean
   porofessorVisible: boolean
+  themeColor: string
 }
 
 export type Page = 'home' | 'settings'
@@ -89,6 +90,7 @@ export default function App() {
     porofessorEnabled: true,
     blitzVisible: true,
     porofessorVisible: true,
+    themeColor: '#7c5cbf',
   })
 
   useEffect(() => {
@@ -116,7 +118,13 @@ export default function App() {
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#111114' }}>
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#111114',
+      '--accent': settings.themeColor,
+    } as React.CSSProperties}>
       {/* Full-width titlebar with window controls top-right */}
       <Titlebar
         onMinimize={() => window.api.minimize()}
@@ -218,7 +226,7 @@ function UpdateBanner({ version, onInstall, onDismiss }: {
         <button
           onClick={onInstall}
           style={{
-            background: '#7c5cbf', border: 'none', borderRadius: 4,
+            background: 'var(--accent)', border: 'none', borderRadius: 4,
             color: '#fff', fontSize: 11, fontWeight: 600,
             padding: '4px 10px', cursor: 'pointer',
           }}

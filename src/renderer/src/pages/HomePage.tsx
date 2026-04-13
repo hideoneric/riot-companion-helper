@@ -29,7 +29,7 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateT
     : !monitoringEnabled
     ? 'MONITORING PAUSED'
     : 'MONITORING ACTIVE'
-  const statusColor = !anyPathSet ? '#f0a500' : !monitoringEnabled ? '#555560' : '#7c5cbf'
+  const statusColor = !anyPathSet ? '#f0a500' : !monitoringEnabled ? '#555560' : 'var(--accent)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -42,7 +42,7 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigateT
           <span
             style={{
               width: 7, height: 7, borderRadius: '50%', background: statusColor, flexShrink: 0,
-              boxShadow: monitoringEnabled && anyPathSet ? '0 0 8px #7c5cbf88' : 'none',
+              boxShadow: monitoringEnabled && anyPathSet ? '0 0 8px color-mix(in srgb, var(--accent) 53%, transparent)' : 'none',
             }}
           />
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: statusColor }}>
@@ -161,7 +161,7 @@ function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       title={on ? 'Disable' : 'Enable'}
       style={{
         width: 30, height: 16, borderRadius: 8, border: 'none', padding: 0,
-        cursor: 'pointer', background: on ? '#7c5cbf' : '#3a3a3e',
+        cursor: 'pointer', background: on ? 'var(--accent)' : '#3a3a3e',
         position: 'relative', flexShrink: 0, transition: 'background 0.2s',
       }}
     >
@@ -274,7 +274,7 @@ function SettingsLink({ onClick }: { onClick: () => void }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         marginLeft: 8, background: 'transparent',
-        border: `1px solid ${hovered ? '#7c5cbf' : '#2c2c32'}`,
+        border: `1px solid ${hovered ? 'var(--accent)' : '#2c2c32'}`,
         borderRadius: 5, color: hovered ? '#fff' : '#8e8e9a',
         cursor: 'pointer', fontSize: 11, padding: '3px 10px',
         transition: 'border-color 0.15s, color 0.15s',
