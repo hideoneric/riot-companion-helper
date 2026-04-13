@@ -1,4 +1,5 @@
 import { execSync } from 'child_process'
+import * as path from 'path'
 import { BlitzLauncher } from './launcher'
 
 export interface LogEntry {
@@ -93,9 +94,14 @@ export class Poller {
   }
 
   private isPorofessorRunning(): boolean {
+    if (!this._porofessorPath) return false
+    const exeName = path.basename(this._porofessorPath)
+    if (!exeName.toLowerCase().endsWith('.exe')) {
+      return this.opts.porofessorLauncher.launchedPid !== null
+    }
     try {
-      const out = execSync('tasklist /FI "IMAGENAME eq Porofessor.exe" /NH', { encoding: 'utf8' }) as unknown as string
-      return out.includes('Porofessor.exe')
+      const out = execSync(`tasklist /FI "IMAGENAME eq ${exeName}" /NH`, { encoding: 'utf8' }) as unknown as string
+      return out.includes(exeName)
     } catch {
       return this.opts.porofessorLauncher.launchedPid !== null
     }
