@@ -24,8 +24,13 @@ Tests live in `tests/**/*.test.ts` and run in a Node environment. All system cal
 
 To create a GitHub release after packaging:
 ```bash
-"/c/Program Files/GitHub CLI/gh.exe" release create vX.Y.Z "dist/riot-companion-helper-X.Y.Z-setup.exe" --title "vX.Y.Z - ..." --notes "..."
+"/c/Program Files/GitHub CLI/gh.exe" release create vX.Y.Z "dist/riot-companion-helper-X.Y.Z-setup.exe" "dist/latest.yml" "dist/riot-companion-helper-X.Y.Z-setup.exe.blockmap" --title "vX.Y.Z - ..." --notes "..."
 ```
+
+**REQUIRED release files — never omit any of these three:**
+- `dist/riot-companion-helper-X.Y.Z-setup.exe` — the installer
+- `dist/latest.yml` — tells the auto-updater a new version exists (missing = users never see the update)
+- `dist/riot-companion-helper-X.Y.Z-setup.exe.blockmap` — enables delta (partial) downloads
 
 **Packaging note**: `npm run package` uses electron-builder and requires Windows Developer Mode enabled (Settings → System → For developers) to avoid symlink errors.
 
