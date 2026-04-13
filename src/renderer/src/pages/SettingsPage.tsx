@@ -428,7 +428,7 @@ function AppearanceSection({
     <div style={{ marginTop: 20 }}>
       <SectionHeading>Appearance</SectionHeading>
       <SettingRow label="Accent color">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
           {ACCENT_PRESETS.map((color) => {
             const active = settings.themeColor === color
             return (
