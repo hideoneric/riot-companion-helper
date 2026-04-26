@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import type { Settings, SubPage } from '../App'
+import React, { useEffect, useState } from 'react'
+import type { HelperSlotSettings, ProcessOption, Settings, SubPage } from '../App'
 
 declare const window: Window & {
   api: {
     browse: () => Promise<string | null>
+    listProcesses: () => Promise<ProcessOption[]>
   }
 }
 
@@ -13,15 +14,13 @@ interface Props {
   onSave: (s: Settings) => Promise<void>
 }
 
-export function SettingsPage({ sub, settings, onSave }: Props) {
+export function SettingsPage({ sub, settings, onSave }: Props): React.JSX.Element {
   return sub === 'general' ? (
     <GeneralSettings settings={settings} onSave={onSave} />
   ) : (
     <BehaviorSettings settings={settings} onSave={onSave} />
   )
 }
-
-/* ─── General ──────────────────────────────────────────────── */
 
 function isValidPath(p: string): boolean {
   return !p || p.toLowerCase().endsWith('.exe') || p.toLowerCase().endsWith('.lnk')
@@ -33,51 +32,24 @@ function GeneralSettings({
 }: {
   settings: Settings
   onSave: (s: Settings) => Promise<void>
-}) {
-  const [blitzPath, setBlitzPath] = useState(settings.blitzPath)
-  const [porofessorPath, setPorofessorPath] = useState(settings.porofessorPath)
-  const [interval, setInterval] = useState(settings.pollingInterval)
-  const [savingBlitz, setSavingBlitz] = useState(false)
-  const [savingPorofessor, setSavingPorofessor] = useState(false)
-  const blitzPathValid = isValidPath(blitzPath)
-  const porofessorPathValid = isValidPath(porofessorPath)
+}): React.JSX.Element {
+  const [processes, setProcesses] = useState<ProcessOption[]>([])
+  const [loadingProcesses, setLoadingProcesses] = useState(false)
+
+  const refreshProcesses = async (): Promise<void> => {
+    setLoadingProcesses(true)
+    try {
+      setProcesses(await window.api.listProcesses())
+    } finally {
+      setLoadingProcesses(false)
+    }
+  }
 
   useEffect(() => {
-    setBlitzPath(settings.blitzPath)
-  }, [settings.blitzPath])
-  useEffect(() => {
-    setPorofessorPath(settings.porofessorPath)
-  }, [settings.porofessorPath])
-  useEffect(() => {
-    setInterval(settings.pollingInterval)
-  }, [settings.pollingInterval])
+    refreshProcesses().catch(console.error)
+  }, [])
 
-  const handleBrowseBlitz = async () => {
-    const p = await window.api.browse()
-    if (p) setBlitzPath(p)
-  }
-
-  const handleBrowsePorofessor = async () => {
-    const p = await window.api.browse()
-    if (p) setPorofessorPath(p)
-  }
-
-  const handleUpdateBlitz = async () => {
-    if (!blitzPathValid) return
-    setSavingBlitz(true)
-    await onSave({ ...settings, blitzPath })
-    setSavingBlitz(false)
-  }
-
-  const handleUpdatePorofessor = async () => {
-    if (!porofessorPathValid) return
-    setSavingPorofessor(true)
-    await onSave({ ...settings, porofessorPath })
-    setSavingPorofessor(false)
-  }
-
-  const handleUpdateInterval = async (v: number) => {
-    setInterval(v)
+  const handleUpdateInterval = async (v: number): Promise<void> => {
     await onSave({ ...settings, pollingInterval: v })
   }
 
@@ -85,115 +57,34 @@ function GeneralSettings({
     <div style={{ padding: '32px 36px', flex: 1, overflowY: 'auto' }}>
       <PageHeading>General</PageHeading>
 
-      {/* ── Helpers ── */}
       <SectionHeading>Helpers</SectionHeading>
-
-      {/* Blitz */}
-      <SettingRow label="Blitz.gg path">
-        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
-          <input
-            value={blitzPath}
-            onChange={(e) => setBlitzPath(e.target.value)}
-            placeholder="C:\...\Blitz.exe"
-            style={{
-              flex: 1,
-              background: '#28282d',
-              border: `1px solid ${blitzPathValid ? '#3a3a3e' : '#c0392b'}`,
-              borderRadius: 6,
-              padding: '6px 10px',
-              color: '#ffffff',
-              fontSize: 12,
-              outline: 'none',
-              minWidth: 0
-            }}
-          />
-          <OutlinedButton onClick={handleUpdateBlitz} disabled={!blitzPathValid || savingBlitz}>
-            {savingBlitz ? 'Saving…' : 'Update'}
-          </OutlinedButton>
-        </div>
-        {!blitzPathValid && blitzPath && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>
-            Must be a .exe or .lnk file
-          </div>
-        )}
-        <MutedButton onClick={handleBrowseBlitz}>Browse…</MutedButton>
-      </SettingRow>
-
-      <VisibilityToggleRow
-        label="Enabled"
-        on={settings.blitzEnabled}
-        onToggle={() => onSave({ ...settings, blitzEnabled: !settings.blitzEnabled })}
-      />
-
-      <VisibilityToggleRow
-        label="Show on Home page"
-        on={settings.blitzVisible}
-        onToggle={() => onSave({ ...settings, blitzVisible: !settings.blitzVisible })}
+      <HelperSlotEditor
+        title="League helper"
+        helper={settings.leagueHelper}
+        processes={processes}
+        loadingProcesses={loadingProcesses}
+        onRefreshProcesses={refreshProcesses}
+        onChange={(leagueHelper) => onSave({ ...settings, leagueHelper })}
       />
 
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
 
-      {/* Porofessor */}
-      <SettingRow
-        label={
-          <span>
-            Porofessor{' '}
-            <span style={{ fontSize: 11, color: '#555560', fontWeight: 400 }}>(League only)</span>
-          </span>
-        }
-      >
-        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
-          <input
-            value={porofessorPath}
-            onChange={(e) => setPorofessorPath(e.target.value)}
-            placeholder="C:\...\Porofessor.exe"
-            style={{
-              flex: 1,
-              background: '#28282d',
-              border: `1px solid ${porofessorPathValid ? '#3a3a3e' : '#c0392b'}`,
-              borderRadius: 6,
-              padding: '6px 10px',
-              color: '#ffffff',
-              fontSize: 12,
-              outline: 'none',
-              minWidth: 0
-            }}
-          />
-          <OutlinedButton
-            onClick={handleUpdatePorofessor}
-            disabled={!porofessorPathValid || savingPorofessor}
-          >
-            {savingPorofessor ? 'Saving…' : 'Update'}
-          </OutlinedButton>
-        </div>
-        {!porofessorPathValid && porofessorPath && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>
-            Must be a .exe or .lnk file
-          </div>
-        )}
-        <MutedButton onClick={handleBrowsePorofessor}>Browse…</MutedButton>
-      </SettingRow>
-
-      <VisibilityToggleRow
-        label="Enabled"
-        on={settings.porofessorEnabled}
-        onToggle={() => onSave({ ...settings, porofessorEnabled: !settings.porofessorEnabled })}
-      />
-
-      <VisibilityToggleRow
-        label="Show on Home page"
-        on={settings.porofessorVisible}
-        onToggle={() => onSave({ ...settings, porofessorVisible: !settings.porofessorVisible })}
+      <HelperSlotEditor
+        title="Valorant helper"
+        helper={settings.valorantHelper}
+        processes={processes}
+        loadingProcesses={loadingProcesses}
+        onRefreshProcesses={refreshProcesses}
+        onChange={(valorantHelper) => onSave({ ...settings, valorantHelper })}
       />
 
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
 
-      {/* ── Polling interval ── */}
       <SectionHeading>App</SectionHeading>
 
       <SettingRow label="Polling interval">
         <select
-          value={interval}
+          value={settings.pollingInterval}
           onChange={(e) => handleUpdateInterval(Number(e.target.value))}
           style={{
             background: '#28282d',
@@ -214,14 +105,140 @@ function GeneralSettings({
         </select>
       </SettingRow>
 
-      {/* ── Appearance ── */}
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
       <AppearanceSection settings={settings} onSave={onSave} />
     </div>
   )
 }
 
-function MutedButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function HelperSlotEditor({
+  title,
+  helper,
+  processes,
+  loadingProcesses,
+  onRefreshProcesses,
+  onChange
+}: {
+  title: string
+  helper: HelperSlotSettings
+  processes: ProcessOption[]
+  loadingProcesses: boolean
+  onRefreshProcesses: () => Promise<void>
+  onChange: (helper: HelperSlotSettings) => Promise<void>
+}): React.JSX.Element {
+  const [appPath, setAppPath] = useState(helper.appPath)
+  const [processName, setProcessName] = useState(helper.processName)
+  const [savingPath, setSavingPath] = useState(false)
+  const [savingProcess, setSavingProcess] = useState(false)
+  const pathValid = isValidPath(appPath)
+
+  const handleBrowse = async (): Promise<void> => {
+    const p = await window.api.browse()
+    if (p) setAppPath(p)
+  }
+
+  const savePath = async (): Promise<void> => {
+    if (!pathValid) return
+    setSavingPath(true)
+    await onChange({ ...helper, appPath })
+    setSavingPath(false)
+  }
+
+  const saveProcess = async (): Promise<void> => {
+    setSavingProcess(true)
+    await onChange({ ...helper, processName: processName.trim() })
+    setSavingProcess(false)
+  }
+
+  return (
+    <div>
+      <h3 style={{ fontSize: 13, color: '#d0d0d8', margin: '0 0 12px' }}>{title}</h3>
+
+      <SettingRow label="Application path">
+        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
+          <input
+            value={appPath}
+            onChange={(e) => setAppPath(e.target.value)}
+            placeholder="C:\...\Helper.exe"
+            style={{
+              flex: 1,
+              background: '#28282d',
+              border: `1px solid ${pathValid ? '#3a3a3e' : '#c0392b'}`,
+              borderRadius: 6,
+              padding: '6px 10px',
+              color: '#ffffff',
+              fontSize: 12,
+              outline: 'none',
+              minWidth: 0
+            }}
+          />
+          <OutlinedButton onClick={savePath} disabled={!pathValid || savingPath}>
+            {savingPath ? 'Saving...' : 'Update'}
+          </OutlinedButton>
+        </div>
+        {!pathValid && appPath && (
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>
+            Must be a .exe or .lnk file
+          </div>
+        )}
+        <MutedButton onClick={handleBrowse}>Browse...</MutedButton>
+      </SettingRow>
+
+      <SettingRow label="Watched process">
+        <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
+          <input
+            value={processName}
+            onChange={(e) => setProcessName(e.target.value)}
+            placeholder="LeagueClient.exe"
+            list={`${title.replace(/\s+/g, '-')}-processes`}
+            style={{
+              flex: 1,
+              background: '#28282d',
+              border: '1px solid #3a3a3e',
+              borderRadius: 6,
+              padding: '6px 10px',
+              color: '#ffffff',
+              fontSize: 12,
+              outline: 'none',
+              minWidth: 0
+            }}
+          />
+          <datalist id={`${title.replace(/\s+/g, '-')}-processes`}>
+            {processes.map((process) => (
+              <option key={process.name} value={process.name} />
+            ))}
+          </datalist>
+          <OutlinedButton onClick={saveProcess} disabled={savingProcess}>
+            {savingProcess ? 'Saving...' : 'Update'}
+          </OutlinedButton>
+        </div>
+        <MutedButton onClick={() => onRefreshProcesses()}>
+          {loadingProcesses ? 'Refreshing...' : 'Refresh process list'}
+        </MutedButton>
+      </SettingRow>
+
+      <ToggleRow
+        label="Enabled"
+        on={helper.enabled}
+        onToggle={() => onChange({ ...helper, enabled: !helper.enabled })}
+      />
+
+      <ToggleRow
+        label="Show on Home page"
+        on={helper.visible}
+        onToggle={() => onChange({ ...helper, visible: !helper.visible })}
+      />
+    </div>
+  )
+}
+
+function MutedButton({
+  onClick,
+  children
+}: {
+  onClick: () => void
+  children: React.ReactNode
+}): React.JSX.Element {
   return (
     <button
       onClick={onClick}
@@ -246,45 +263,13 @@ function MutedButton({ onClick, children }: { onClick: () => void; children: Rea
   )
 }
 
-/* ─── Behavior ─────────────────────────────────────────────── */
-
 function BehaviorSettings({
   settings,
   onSave
 }: {
   settings: Settings
   onSave: (s: Settings) => Promise<void>
-}) {
-  const [monitoring, setMonitoring] = useState(settings.monitoringEnabled)
-  const [startup, setStartup] = useState(settings.launchWithWindows)
-  const [dirty, setDirty] = useState(false)
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    setMonitoring(settings.monitoringEnabled)
-    setStartup(settings.launchWithWindows)
-    setDirty(false)
-  }, [settings.monitoringEnabled, settings.launchWithWindows])
-
-  const toggle = (field: 'monitoring' | 'startup') => {
-    if (field === 'monitoring') setMonitoring((v) => !v)
-    else setStartup((v) => !v)
-    setDirty(true)
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    await onSave({ ...settings, monitoringEnabled: monitoring, launchWithWindows: startup })
-    setDirty(false)
-    setSaving(false)
-  }
-
-  const handleDiscard = () => {
-    setMonitoring(settings.monitoringEnabled)
-    setStartup(settings.launchWithWindows)
-    setDirty(false)
-  }
-
+}): React.JSX.Element {
   return (
     <div style={{ padding: '32px 36px', flex: 1, display: 'flex', flexDirection: 'column' }}>
       <PageHeading>Behavior</PageHeading>
@@ -294,73 +279,20 @@ function BehaviorSettings({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32 }}>
         <CheckboxRow
           label="Monitoring enabled"
-          checked={monitoring}
-          onChange={() => toggle('monitoring')}
+          checked={settings.monitoringEnabled}
+          onChange={() => onSave({ ...settings, monitoringEnabled: !settings.monitoringEnabled })}
         />
         <CheckboxRow
           label="Launch with Windows"
-          checked={startup}
-          onChange={() => toggle('startup')}
+          checked={settings.launchWithWindows}
+          onChange={() => onSave({ ...settings, launchWithWindows: !settings.launchWithWindows })}
         />
       </div>
-
-      {/* Sticky save bar */}
-      {dirty && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-            paddingTop: 20,
-            borderTop: '1px solid #2c2c32',
-            marginTop: 'auto'
-          }}
-        >
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              background: 'var(--accent)',
-              border: 'none',
-              borderRadius: 6,
-              padding: '7px 20px',
-              color: '#ffffff',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.7 : 1
-            }}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-          <button
-            onClick={handleDiscard}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#8e8e9a',
-              fontSize: 13,
-              cursor: 'pointer',
-              padding: '7px 8px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ffffff'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#8e8e9a'
-            }}
-          >
-            Discard
-          </button>
-        </div>
-      )}
     </div>
   )
 }
 
-/* ─── Shared sub-components ────────────────────────────────── */
-
-function PageHeading({ children }: { children: React.ReactNode }) {
+function PageHeading({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <h1 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', margin: '0 0 24px' }}>
       {children}
@@ -368,7 +300,7 @@ function PageHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <h2
       style={{
@@ -385,16 +317,22 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-function SettingRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+function SettingRow({
+  label,
+  children
+}: {
+  label: React.ReactNode
+  children: React.ReactNode
+}): React.JSX.Element {
   return (
-    <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{children}</div>
     </div>
   )
 }
 
-function VisibilityToggleRow({
+function ToggleRow({
   label,
   on,
   onToggle
@@ -402,7 +340,7 @@ function VisibilityToggleRow({
   label: string
   on: boolean
   onToggle: () => void
-}) {
+}): React.JSX.Element {
   return (
     <div
       style={{
@@ -416,7 +354,7 @@ function VisibilityToggleRow({
       <span style={{ fontSize: 12, color: '#8e8e9a' }}>{label}</span>
       <button
         onClick={onToggle}
-        title={on ? 'Hide' : 'Show'}
+        title={on ? 'Disable' : 'Enable'}
         style={{
           width: 30,
           height: 16,
@@ -455,7 +393,7 @@ function OutlinedButton({
   onClick: () => void
   disabled?: boolean
   children: React.ReactNode
-}) {
+}): React.JSX.Element {
   const [hovered, setHovered] = React.useState(false)
   return (
     <button
@@ -492,7 +430,7 @@ function CheckboxRow({
   label: string
   checked: boolean
   onChange: () => void
-}) {
+}): React.JSX.Element {
   return (
     <label
       style={{
@@ -554,7 +492,7 @@ function AppearanceSection({
 }: {
   settings: Settings
   onSave: (s: Settings) => Promise<void>
-}) {
+}): React.JSX.Element {
   const colorInputRef = React.useRef<HTMLInputElement>(null)
   const isCustom = !ACCENT_PRESETS.includes(settings.themeColor)
 
@@ -593,7 +531,6 @@ function AppearanceSection({
               />
             )
           })}
-          {/* Custom swatch */}
           <button
             onClick={() => colorInputRef.current?.click()}
             title="Custom color"

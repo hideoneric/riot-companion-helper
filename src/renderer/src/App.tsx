@@ -15,6 +15,7 @@ declare const window: Window & {
     getSettings: () => Promise<Settings>
     saveSettings: (s: Settings) => Promise<void>
     browse: () => Promise<string | null>
+    listProcesses: () => Promise<ProcessOption[]>
     onNavigate: (cb: (page: string) => void) => () => void
     onUpdateStatus: (cb: (s: UpdateStatus) => void) => () => void
     installUpdate: () => void
@@ -23,16 +24,30 @@ declare const window: Window & {
 
 export interface AppState {
   leagueRunning: boolean
-  blitzRunning: boolean
   valorantRunning: boolean
   monitoringEnabled: boolean
-  blitzPathSet: boolean
-  leagueEnabled: boolean
-  valorantEnabled: boolean
-  blitzEnabled: boolean
-  porofessorRunning: boolean
-  porofessorPathSet: boolean
-  porofessorEnabled: boolean
+  leagueHelper: HelperSlotState
+  valorantHelper: HelperSlotState
+}
+
+export interface HelperSlotState {
+  running: boolean
+  processRunning: boolean
+  pathSet: boolean
+  processSet: boolean
+  enabled: boolean
+  visible: boolean
+}
+
+export interface HelperSlotSettings {
+  appPath: string
+  processName: string
+  enabled: boolean
+  visible: boolean
+}
+
+export interface ProcessOption {
+  name: string
 }
 
 export interface LogEntry {
@@ -42,17 +57,11 @@ export interface LogEntry {
 }
 
 export interface Settings {
-  blitzPath: string
   launchWithWindows: boolean
   pollingInterval: number
   monitoringEnabled: boolean
-  leagueEnabled: boolean
-  valorantEnabled: boolean
-  blitzEnabled: boolean
-  porofessorPath: string
-  porofessorEnabled: boolean
-  blitzVisible: boolean
-  porofessorVisible: boolean
+  leagueHelper: HelperSlotSettings
+  valorantHelper: HelperSlotSettings
   themeColor: string
 }
 
@@ -70,32 +79,44 @@ export default function App(): React.JSX.Element {
   const [activeSubPage, setActiveSubPage] = useState<SubPage>('general')
   const [appState, setAppState] = useState<AppState>({
     leagueRunning: false,
-    blitzRunning: false,
     valorantRunning: false,
     monitoringEnabled: true,
-    blitzPathSet: false,
-    leagueEnabled: true,
-    valorantEnabled: true,
-    blitzEnabled: true,
-    porofessorRunning: false,
-    porofessorPathSet: false,
-    porofessorEnabled: true
+    leagueHelper: {
+      running: false,
+      processRunning: false,
+      pathSet: false,
+      processSet: false,
+      enabled: true,
+      visible: true
+    },
+    valorantHelper: {
+      running: false,
+      processRunning: false,
+      pathSet: false,
+      processSet: false,
+      enabled: true,
+      visible: true
+    }
   })
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>({
-    blitzPath: '',
     launchWithWindows: false,
     pollingInterval: 3,
     monitoringEnabled: true,
-    leagueEnabled: true,
-    valorantEnabled: true,
-    blitzEnabled: true,
-    porofessorPath: '',
-    porofessorEnabled: true,
-    blitzVisible: true,
-    porofessorVisible: true,
+    leagueHelper: {
+      appPath: '',
+      processName: '',
+      enabled: true,
+      visible: true
+    },
+    valorantHelper: {
+      appPath: '',
+      processName: '',
+      enabled: true,
+      visible: true
+    },
     themeColor: '#7c5cbf'
   })
 

@@ -11,55 +11,109 @@ describe('Poller state machine', () => {
   let poller: Poller
   let onLog: ReturnType<typeof vi.fn>
   let onState: ReturnType<typeof vi.fn>
-  let mockLauncher: BlitzLauncher
-  let mockPorofessorLauncher: BlitzLauncher
+  let leagueLauncher: BlitzLauncher
+  let valorantLauncher: BlitzLauncher
 
   beforeEach(() => {
     onLog = vi.fn()
     onState = vi.fn()
-    mockLauncher = new BlitzLauncher()
-    vi.mocked(mockLauncher.launch).mockImplementation(() => {})
-    vi.mocked(mockLauncher.kill).mockImplementation(() => {})
-    mockPorofessorLauncher = new BlitzLauncher()
-    vi.mocked(mockPorofessorLauncher.launch).mockImplementation(() => {})
-    vi.mocked(mockPorofessorLauncher.kill).mockImplementation(() => {})
-    poller = new Poller({ launcher: mockLauncher, porofessorLauncher: mockPorofessorLauncher, onLog, onStateChange: onState })
-    poller.setBlitzPath('C:\\mock\\Blitz.exe')
+    leagueLauncher = new BlitzLauncher()
+    vi.mocked(leagueLauncher.launch).mockImplementation(() => {})
+    vi.mocked(leagueLauncher.kill).mockImplementation(() => {})
+    valorantLauncher = new BlitzLauncher()
+    vi.mocked(valorantLauncher.launch).mockImplementation(() => {})
+    vi.mocked(valorantLauncher.kill).mockImplementation(() => {})
+    poller = new Poller({
+      leagueLauncher,
+      valorantLauncher,
+      onLog,
+      onStateChange: onState
+    })
     vi.spyOn(child_process, 'execSync').mockReturnValue(Buffer.from(''))
   })
 
-  const mockLeagueRunning = (running: boolean) => {
-    vi.spyOn(child_process, 'execSync').mockReturnValue(
-      Buffer.from(running ? 'LeagueClient.exe   1234' : 'INFO: No tasks are running')
-    )
+  const setProcessList = (processNames: string[]): void => {
+    vi.spyOn(child_process, 'execSync').mockImplementation((command) => {
+      const commandText = String(command)
+      const match = commandText.match(/IMAGENAME eq ([^"]+)/)
+      const processName = match?.[1]
+      return Buffer.from(processName && processNames.includes(processName) ? processName : '')
+    })
   }
 
-  it('launches Blitz when League starts', () => {
-    mockLeagueRunning(true)
-    poller.tick()
-    expect(mockLauncher.launch).toHaveBeenCalledOnce()
-    expect(onLog).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('League of Legends detected') }))
+  beforeEach(() => {
+    poller.setLeagueHelper({
+      appPath: 'C:\\Helpers\\LeagueHelper.exe',
+      processName: 'LeagueClient.exe',
+      enabled: true,
+      visible: true
+    })
+    poller.setValorantHelper({
+      appPath: 'C:\\Helpers\\ValorantHelper.exe',
+      processName: 'VALORANT.exe',
+      enabled: true,
+      visible: true
+    })
   })
 
-  it('does not launch Blitz twice', () => {
-    mockLeagueRunning(true)
+  it('launches League helper when its configured process starts', () => {
+    setProcessList(['LeagueClient.exe'])
     poller.tick()
-    poller.tick()
-    expect(mockLauncher.launch).toHaveBeenCalledOnce()
+    expect(leagueLauncher.launch).toHaveBeenCalledWith('C:\\Helpers\\LeagueHelper.exe')
+    expect(valorantLauncher.launch).not.toHaveBeenCalled()
   })
 
-  it('kills Blitz when League stops', () => {
-    mockLeagueRunning(true)
+  it('launches Valorant helper when its configured process starts', () => {
+    setProcessList(['VALORANT.exe'])
     poller.tick()
-    mockLeagueRunning(false)
+    expect(valorantLauncher.launch).toHaveBeenCalledWith('C:\\Helpers\\ValorantHelper.exe')
+    expect(leagueLauncher.launch).not.toHaveBeenCalled()
+  })
+
+  it('does not launch disabled helpers', () => {
+    poller.setLeagueHelper({
+      appPath: 'C:\\Helpers\\LeagueHelper.exe',
+      processName: 'LeagueClient.exe',
+      enabled: false,
+      visible: true
+    })
+    setProcessList(['LeagueClient.exe'])
     poller.tick()
-    expect(mockLauncher.kill).toHaveBeenCalledOnce()
+    expect(leagueLauncher.launch).not.toHaveBeenCalled()
+  })
+
+  it('does not launch helpers missing path or process name', () => {
+    poller.setLeagueHelper({
+      appPath: '',
+      processName: 'LeagueClient.exe',
+      enabled: true,
+      visible: true
+    })
+    poller.setValorantHelper({
+      appPath: 'C:\\Helpers\\ValorantHelper.exe',
+      processName: '',
+      enabled: true,
+      visible: true
+    })
+    setProcessList(['LeagueClient.exe', 'VALORANT.exe'])
+    poller.tick()
+    expect(leagueLauncher.launch).not.toHaveBeenCalled()
+    expect(valorantLauncher.launch).not.toHaveBeenCalled()
+  })
+
+  it('closes only the matching helper when its configured process stops', () => {
+    setProcessList(['LeagueClient.exe', 'VALORANT.exe'])
+    poller.tick()
+    setProcessList(['VALORANT.exe'])
+    poller.tick()
+    expect(leagueLauncher.kill).toHaveBeenCalledOnce()
+    expect(valorantLauncher.kill).not.toHaveBeenCalled()
   })
 
   it('does not tick when monitoring is disabled', () => {
     poller.setMonitoring(false)
-    mockLeagueRunning(true)
+    setProcessList(['LeagueClient.exe'])
     poller.tick()
-    expect(mockLauncher.launch).not.toHaveBeenCalled()
+    expect(leagueLauncher.launch).not.toHaveBeenCalled()
   })
 })

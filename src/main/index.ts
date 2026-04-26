@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import * as path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { getSettings, saveSettings } from './settings-store'
-import { detectBlitzPath } from './detector'
 import { BlitzLauncher } from './launcher'
 import { Poller } from './poller'
 import { createTray } from './tray'
@@ -16,8 +15,8 @@ let isQuitting = false
 if (!app.requestSingleInstanceLock()) app.quit()
 
 let mainWindow: BrowserWindow | null = null
-const launcher = new BlitzLauncher()
-const porofessorLauncher = new BlitzLauncher()
+const leagueLauncher = new BlitzLauncher()
+const valorantLauncher = new BlitzLauncher()
 const logEntries: unknown[] = []
 
 function createMainWindow(): BrowserWindow {
@@ -61,19 +60,11 @@ function createMainWindow(): BrowserWindow {
 app.whenReady().then(() => {
   app.setAppUserModelId('com.riotcompanionhelper.app')
 
-  // Load and (if needed) auto-detect settings before anything else
-  let settings = getSettings()
-  if (!settings.blitzPath) {
-    const detected = detectBlitzPath()
-    if (detected) {
-      saveSettings({ ...settings, blitzPath: detected })
-      settings = getSettings()
-    }
-  }
+  const settings = getSettings()
 
   const poller = new Poller({
-    launcher,
-    porofessorLauncher,
+    leagueLauncher,
+    valorantLauncher,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -91,16 +82,24 @@ app.whenReady().then(() => {
   // Seed initial state from persisted settings so state:get is correct immediately
   setCurrentState({
     leagueRunning: false,
-    blitzRunning: false,
     valorantRunning: false,
     monitoringEnabled: settings.monitoringEnabled,
-    blitzPathSet: !!settings.blitzPath,
-    leagueEnabled: settings.leagueEnabled,
-    valorantEnabled: settings.valorantEnabled,
-    blitzEnabled: settings.blitzEnabled,
-    porofessorRunning: false,
-    porofessorPathSet: !!settings.porofessorPath,
-    porofessorEnabled: settings.porofessorEnabled
+    leagueHelper: {
+      running: false,
+      processRunning: false,
+      pathSet: !!settings.leagueHelper.appPath,
+      processSet: !!settings.leagueHelper.processName,
+      enabled: settings.leagueHelper.enabled,
+      visible: settings.leagueHelper.visible
+    },
+    valorantHelper: {
+      running: false,
+      processRunning: false,
+      pathSet: !!settings.valorantHelper.appPath,
+      processSet: !!settings.valorantHelper.processName,
+      enabled: settings.valorantHelper.enabled,
+      visible: settings.valorantHelper.visible
+    }
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
@@ -111,12 +110,13 @@ app.whenReady().then(() => {
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
   ipcMain.on('update:install', () => installUpdate())
 
-  poller.setBlitzPath(settings.blitzPath)
-  poller.setPorofessorPath(settings.porofessorPath)
-  poller.setPorofessorEnabled(settings.porofessorEnabled)
-  poller.setLeagueEnabled(settings.leagueEnabled)
-  poller.setValorantEnabled(settings.valorantEnabled)
-  if (settings.monitoringEnabled && (settings.blitzPath || settings.porofessorPath)) {
+  poller.setLeagueHelper(settings.leagueHelper)
+  poller.setValorantHelper(settings.valorantHelper)
+  if (
+    settings.monitoringEnabled &&
+    ((settings.leagueHelper.appPath && settings.leagueHelper.processName) ||
+      (settings.valorantHelper.appPath && settings.valorantHelper.processName))
+  ) {
     poller.startInterval(settings.pollingInterval)
   }
 
@@ -151,8 +151,8 @@ app.whenReady().then(() => {
 
   app.on('before-quit', () => {
     isQuitting = true
-    if (launcher.launchedPid) launcher.kill()
-    if (porofessorLauncher.launchedPid) porofessorLauncher.kill()
+    if (leagueLauncher.launchedPid) leagueLauncher.kill()
+    if (valorantLauncher.launchedPid) valorantLauncher.kill()
   })
 
   app.on('window-all-closed', () => {})

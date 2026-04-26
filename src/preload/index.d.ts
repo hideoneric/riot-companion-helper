@@ -6,6 +6,10 @@ export type UpdateStatus =
   | { status: 'ready'; version: string }
   | { status: 'error'; message: string }
 
+export interface ProcessOption {
+  name: string
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI

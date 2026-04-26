@@ -1,32 +1,34 @@
 import Store from 'electron-store'
 
+export interface HelperSlotSettings {
+  appPath: string
+  processName: string
+  enabled: boolean
+  visible: boolean
+}
+
 export interface AppSettings {
-  blitzPath: string
   launchWithWindows: boolean
-  pollingInterval: number // seconds, 1–10
+  pollingInterval: number // seconds, 1-10
   monitoringEnabled: boolean
-  leagueEnabled: boolean
-  valorantEnabled: boolean
-  blitzEnabled: boolean
-  porofessorPath: string
-  porofessorEnabled: boolean
-  blitzVisible: boolean
-  porofessorVisible: boolean
+  leagueHelper: HelperSlotSettings
+  valorantHelper: HelperSlotSettings
   themeColor: string
 }
 
+const DEFAULT_HELPER: HelperSlotSettings = {
+  appPath: '',
+  processName: '',
+  enabled: true,
+  visible: true
+}
+
 const DEFAULTS: AppSettings = {
-  blitzPath: '',
   launchWithWindows: false,
   pollingInterval: 3,
   monitoringEnabled: true,
-  leagueEnabled: true,
-  valorantEnabled: true,
-  blitzEnabled: true,
-  porofessorPath: '',
-  porofessorEnabled: true,
-  blitzVisible: true,
-  porofessorVisible: true,
+  leagueHelper: DEFAULT_HELPER,
+  valorantHelper: DEFAULT_HELPER,
   themeColor: '#7c5cbf'
 }
 
@@ -40,36 +42,37 @@ function normalizeThemeColor(value: unknown): string {
   return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : DEFAULTS.themeColor
 }
 
+function normalizeHelper(value: unknown): HelperSlotSettings {
+  if (!value || typeof value !== 'object') return { ...DEFAULT_HELPER }
+  const helper = value as Partial<HelperSlotSettings>
+
+  return {
+    appPath: typeof helper.appPath === 'string' ? helper.appPath : DEFAULT_HELPER.appPath,
+    processName:
+      typeof helper.processName === 'string' ? helper.processName : DEFAULT_HELPER.processName,
+    enabled: typeof helper.enabled === 'boolean' ? helper.enabled : DEFAULT_HELPER.enabled,
+    visible: typeof helper.visible === 'boolean' ? helper.visible : DEFAULT_HELPER.visible
+  }
+}
+
 export function getSettings(): AppSettings {
   return {
-    blitzPath: store.get('blitzPath', DEFAULTS.blitzPath),
     launchWithWindows: store.get('launchWithWindows', DEFAULTS.launchWithWindows),
     pollingInterval: normalizePollingInterval(
       store.get('pollingInterval', DEFAULTS.pollingInterval)
     ),
     monitoringEnabled: store.get('monitoringEnabled', DEFAULTS.monitoringEnabled),
-    leagueEnabled: store.get('leagueEnabled', DEFAULTS.leagueEnabled),
-    valorantEnabled: store.get('valorantEnabled', DEFAULTS.valorantEnabled),
-    blitzEnabled: store.get('blitzEnabled', DEFAULTS.blitzEnabled),
-    porofessorPath: store.get('porofessorPath', DEFAULTS.porofessorPath),
-    porofessorEnabled: store.get('porofessorEnabled', DEFAULTS.porofessorEnabled),
-    blitzVisible: store.get('blitzVisible', DEFAULTS.blitzVisible),
-    porofessorVisible: store.get('porofessorVisible', DEFAULTS.porofessorVisible),
+    leagueHelper: normalizeHelper(store.get('leagueHelper', DEFAULTS.leagueHelper)),
+    valorantHelper: normalizeHelper(store.get('valorantHelper', DEFAULTS.valorantHelper)),
     themeColor: normalizeThemeColor(store.get('themeColor', DEFAULTS.themeColor))
   }
 }
 
 export function saveSettings(s: AppSettings): void {
-  store.set('blitzPath', s.blitzPath)
   store.set('launchWithWindows', s.launchWithWindows)
   store.set('pollingInterval', s.pollingInterval)
   store.set('monitoringEnabled', s.monitoringEnabled)
-  store.set('leagueEnabled', s.leagueEnabled)
-  store.set('valorantEnabled', s.valorantEnabled)
-  store.set('blitzEnabled', s.blitzEnabled)
-  store.set('porofessorPath', s.porofessorPath)
-  store.set('porofessorEnabled', s.porofessorEnabled)
-  store.set('blitzVisible', s.blitzVisible)
-  store.set('porofessorVisible', s.porofessorVisible)
+  store.set('leagueHelper', s.leagueHelper)
+  store.set('valorantHelper', s.valorantHelper)
   store.set('themeColor', s.themeColor)
 }

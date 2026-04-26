@@ -27,31 +27,47 @@ describe('settings-store', () => {
   })
 
   const fullSettings = {
-    blitzPath: 'C:\\Blitz\\Blitz.exe',
     launchWithWindows: false,
     pollingInterval: 3,
     monitoringEnabled: true,
-    leagueEnabled: true,
-    valorantEnabled: true,
-    blitzEnabled: true,
-    porofessorPath: '',
-    porofessorEnabled: true,
-    blitzVisible: true,
-    porofessorVisible: true,
+    leagueHelper: {
+      appPath: 'C:\\Helpers\\LeagueHelper.exe',
+      processName: 'LeagueClient.exe',
+      enabled: true,
+      visible: true
+    },
+    valorantHelper: {
+      appPath: 'C:\\Helpers\\ValorantHelper.exe',
+      processName: 'VALORANT.exe',
+      enabled: true,
+      visible: true
+    },
     themeColor: '#7c5cbf'
   }
 
   it('returns defaults when nothing is stored', () => {
     const s = getSettings()
-    expect(s.blitzPath).toBe('')
     expect(s.launchWithWindows).toBe(false)
     expect(s.pollingInterval).toBe(3)
     expect(s.monitoringEnabled).toBe(true)
+    expect(s.leagueHelper).toEqual({
+      appPath: '',
+      processName: '',
+      enabled: true,
+      visible: true
+    })
+    expect(s.valorantHelper).toEqual({
+      appPath: '',
+      processName: '',
+      enabled: true,
+      visible: true
+    })
   })
 
   it('saves and retrieves a value', () => {
     saveSettings(fullSettings)
-    expect(getSettings().blitzPath).toBe('C:\\Blitz\\Blitz.exe')
+    expect(getSettings().leagueHelper.appPath).toBe('C:\\Helpers\\LeagueHelper.exe')
+    expect(getSettings().valorantHelper.processName).toBe('VALORANT.exe')
   })
 
   it('falls back to default polling interval when stored value is invalid', () => {

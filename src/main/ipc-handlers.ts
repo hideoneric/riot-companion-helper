@@ -1,39 +1,44 @@
 import { ipcMain, dialog } from 'electron'
 import { getSettings, saveSettings } from './settings-store'
+import { listRunningProcesses } from './process-list'
 import { setLaunchWithWindows } from './startup'
-import type { Poller } from './poller'
+import type { Poller, PollerState } from './poller'
 
-let currentState = {
+let currentState: PollerState = {
   leagueRunning: false,
-  blitzRunning: false,
   valorantRunning: false,
   monitoringEnabled: true,
-  blitzPathSet: false,
-  leagueEnabled: true,
-  valorantEnabled: true,
-  blitzEnabled: true,
-  porofessorRunning: false,
-  porofessorPathSet: false,
-  porofessorEnabled: true,
+  leagueHelper: {
+    running: false,
+    processRunning: false,
+    pathSet: false,
+    processSet: false,
+    enabled: true,
+    visible: true
+  },
+  valorantHelper: {
+    running: false,
+    processRunning: false,
+    pathSet: false,
+    processSet: false,
+    enabled: true,
+    visible: true
+  }
 }
 
-export function setCurrentState(s: typeof currentState) {
+export function setCurrentState(s: PollerState): void {
   currentState = s
 }
 
-export function registerIpcHandlers(poller: Poller) {
+export function registerIpcHandlers(poller: Poller): void {
   ipcMain.handle('state:get', () => currentState)
 
   ipcMain.handle('settings:get', () => getSettings())
 
   ipcMain.handle('settings:save', async (_e, newSettings) => {
     saveSettings(newSettings)
-    poller.setBlitzPath(newSettings.blitzPath)
-    poller.setBlitzEnabled(newSettings.blitzEnabled)
-    poller.setPorofessorPath(newSettings.porofessorPath)
-    poller.setPorofessorEnabled(newSettings.porofessorEnabled)
-    poller.setLeagueEnabled(newSettings.leagueEnabled)
-    poller.setValorantEnabled(newSettings.valorantEnabled)
+    poller.setLeagueHelper(newSettings.leagueHelper)
+    poller.setValorantHelper(newSettings.valorantHelper)
     if (newSettings.monitoringEnabled !== currentState.monitoringEnabled) {
       poller.setMonitoring(newSettings.monitoringEnabled)
     }
@@ -45,10 +50,12 @@ export function registerIpcHandlers(poller: Poller) {
     }
   })
 
+  ipcMain.handle('processes:list', () => listRunningProcesses())
+
   ipcMain.handle('settings:browse', async () => {
     const result = await dialog.showOpenDialog({
       filters: [{ name: 'Executables & Shortcuts', extensions: ['exe', 'lnk'] }],
-      properties: ['openFile'],
+      properties: ['openFile']
     })
     return result.canceled ? null : result.filePaths[0]
   })
