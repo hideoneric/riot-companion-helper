@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef, type JSX } from 'react'
 
 interface LogEntry {
   timestamp: string
@@ -13,10 +13,10 @@ interface Props {
 const levelColor: Record<LogEntry['level'], string> = {
   info: '#a0a0b8',
   warn: '#f0a500',
-  error: '#e53935',
+  error: '#e53935'
 }
 
-export function ActivityLog({ entries }: Props) {
+export function ActivityLog({ entries }: Props): JSX.Element {
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -24,7 +24,9 @@ export function ActivityLog({ entries }: Props) {
   }, [entries.length])
 
   return (
-    <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+    >
       <div
         style={{
           fontSize: 11,
@@ -32,7 +34,7 @@ export function ActivityLog({ entries }: Props) {
           letterSpacing: '0.1em',
           color: '#555',
           marginBottom: 10,
-          textTransform: 'uppercase',
+          textTransform: 'uppercase'
         }}
       >
         Activity Log
@@ -44,7 +46,7 @@ export function ActivityLog({ entries }: Props) {
           background: '#13121f',
           borderRadius: 8,
           padding: '10px 12px',
-          border: '1px solid #2d2b45',
+          border: '1px solid #2d2b45'
         }}
       >
         {entries.length === 0 && (
@@ -61,7 +63,7 @@ export function ActivityLog({ entries }: Props) {
               gap: 10,
               fontSize: 12,
               marginBottom: 5,
-              lineHeight: 1.5,
+              lineHeight: 1.5
             }}
           >
             <span style={{ color: '#444', minWidth: 58, flexShrink: 0 }}>{e.timestamp}</span>

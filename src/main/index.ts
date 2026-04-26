@@ -33,8 +33,8 @@ function createMainWindow(): BrowserWindow {
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
-      nodeIntegration: false,
-    },
+      nodeIntegration: false
+    }
   })
 
   win.on('ready-to-show', () => {
@@ -85,7 +85,7 @@ app.whenReady().then(() => {
     },
     onTrayNotify: (title, message) => {
       tray?.displayBalloon({ title, content: message, iconType: 'warning' })
-    },
+    }
   })
 
   // Seed initial state from persisted settings so state:get is correct immediately
@@ -100,7 +100,7 @@ app.whenReady().then(() => {
     blitzEnabled: settings.blitzEnabled,
     porofessorRunning: false,
     porofessorPathSet: !!settings.porofessorPath,
-    porofessorEnabled: settings.porofessorEnabled,
+    porofessorEnabled: settings.porofessorEnabled
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
@@ -131,14 +131,17 @@ app.whenReady().then(() => {
 
   tray = createTray(
     iconPath,
-    () => { mainWindow?.show(); mainWindow?.focus() },
+    () => {
+      mainWindow?.show()
+      mainWindow?.focus()
+    },
     () => {
       const s = getSettings()
       const enabled = !s.monitoringEnabled
       saveSettings({ ...s, monitoringEnabled: enabled })
       poller.setMonitoring(enabled)
     },
-    () => getSettings().monitoringEnabled,
+    () => getSettings().monitoringEnabled
   )
 
   app.on('second-instance', () => {
@@ -152,5 +155,5 @@ app.whenReady().then(() => {
     if (porofessorLauncher.launchedPid) porofessorLauncher.kill()
   })
 
-  app.on('window-all-closed', (e: Event) => e.preventDefault())
+  app.on('window-all-closed', () => {})
 })

@@ -65,7 +65,7 @@ export type UpdateStatus =
   | { status: 'ready'; version: string }
   | { status: 'error'; message: string }
 
-export default function App() {
+export default function App(): React.JSX.Element {
   const [activePage, setActivePage] = useState<Page>('home')
   const [activeSubPage, setActiveSubPage] = useState<SubPage>('general')
   const [appState, setAppState] = useState<AppState>({
@@ -79,7 +79,7 @@ export default function App() {
     blitzEnabled: true,
     porofessorRunning: false,
     porofessorPathSet: false,
-    porofessorEnabled: true,
+    porofessorEnabled: true
   })
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [updateDismissed, setUpdateDismissed] = useState(false)
@@ -96,46 +96,51 @@ export default function App() {
     porofessorEnabled: true,
     blitzVisible: true,
     porofessorVisible: true,
-    themeColor: '#7c5cbf',
+    themeColor: '#7c5cbf'
   })
 
   useEffect(() => {
-    if (!(window as any).api) return
+    if (!('api' in window)) return undefined
     try {
       window.api.getState().then(setAppState).catch(console.error)
       window.api.getSettings().then(setSettings).catch(console.error)
       const unsub1 = window.api.onStateUpdate(setAppState)
-      const unsub2 = window.api.onLogEntry((e) =>
-        setLogs((prev) => [e, ...prev].slice(0, 100))
-      )
+      const unsub2 = window.api.onLogEntry((e) => setLogs((prev) => [e, ...prev].slice(0, 100)))
       const unsub3 = window.api.onNavigate((page) => {
         if (page === 'settings') setActivePage('settings')
       })
       const unsub4 = window.api.onUpdateStatus(setUpdateStatus)
-      return () => { unsub1(); unsub2(); unsub3(); unsub4() }
+      return () => {
+        unsub1()
+        unsub2()
+        unsub3()
+        unsub4()
+      }
     } catch (err) {
       console.error('window.api error:', err)
+      return undefined
     }
   }, [])
 
-  const handleSaveSettings = async (s: Settings) => {
+  const handleSaveSettings = async (s: Settings): Promise<void> => {
     await window.api.saveSettings(s)
     setSettings(s)
   }
 
   return (
-    <div style={{
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#111114',
-      '--accent': settings.themeColor,
-    } as React.CSSProperties}>
+    <div
+      style={
+        {
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#111114',
+          '--accent': settings.themeColor
+        } as React.CSSProperties
+      }
+    >
       {/* Full-width titlebar with window controls top-right */}
-      <Titlebar
-        onMinimize={() => window.api.minimize()}
-        onClose={() => window.api.hideToTray()}
-      />
+      <Titlebar onMinimize={() => window.api.minimize()} onClose={() => window.api.hideToTray()} />
 
       {/* Update banner — only shown when update is fully downloaded */}
       {updateStatus?.status === 'ready' && !updateDismissed && (
@@ -147,29 +152,39 @@ export default function App() {
       )}
 
       {/* Body: sidebar + content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
+      <div
+        style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}
+      >
         <Sidebar activePage={activePage} onNavigate={setActivePage} />
 
         {activePage === 'settings' && (
           <SubNav activeSub={activeSubPage} onNavigate={setActiveSubPage} />
         )}
 
-        <main style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: '#1f1f23' }}>
+        <main
+          style={{
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#1f1f23'
+          }}
+        >
           {activePage === 'home' && (
             <HomePage
               appState={appState}
               logs={logs}
               settings={settings}
               onSaveSettings={handleSaveSettings}
-              onNavigateToSettings={() => { setActivePage('settings'); setActiveSubPage('general') }}
+              onNavigateToSettings={() => {
+                setActivePage('settings')
+                setActiveSubPage('general')
+              }}
             />
           )}
           {activePage === 'settings' && (
-            <SettingsPage
-              sub={activeSubPage}
-              settings={settings}
-              onSave={handleSaveSettings}
-            />
+            <SettingsPage sub={activeSubPage} settings={settings} onSave={handleSaveSettings} />
           )}
         </main>
       </div>
@@ -177,22 +192,38 @@ export default function App() {
   )
 }
 
-function Titlebar({ onMinimize, onClose }: { onMinimize: () => void; onClose: () => void }) {
+function Titlebar({
+  onMinimize,
+  onClose
+}: {
+  onMinimize: () => void
+  onClose: () => void
+}): React.JSX.Element {
   return (
     <div
-      style={{
-        height: 38,
-        background: '#111114',
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: 16,
-        paddingRight: 8,
-        borderBottom: '1px solid #2c2c32',
-        flexShrink: 0,
-        WebkitAppRegion: 'drag',
-      } as React.CSSProperties}
+      style={
+        {
+          height: 38,
+          background: '#111114',
+          display: 'flex',
+          alignItems: 'center',
+          paddingLeft: 16,
+          paddingRight: 8,
+          borderBottom: '1px solid #2c2c32',
+          flexShrink: 0,
+          WebkitAppRegion: 'drag'
+        } as React.CSSProperties
+      }
     >
-      <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#8e8e9a', letterSpacing: '0.02em' }}>
+      <span
+        style={{
+          flex: 1,
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#8e8e9a',
+          letterSpacing: '0.02em'
+        }}
+      >
         Riot Companion Helper
       </span>
       <div style={{ display: 'flex', gap: 2, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
@@ -202,7 +233,15 @@ function Titlebar({ onMinimize, onClose }: { onMinimize: () => void; onClose: ()
           </svg>
         </TitleBtn>
         <TitleBtn onClick={onClose} hoverColor="#c0392b">
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+          <svg
+            width="9"
+            height="9"
+            viewBox="0 0 9 9"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          >
             <line x1="1" y1="1" x2="8" y2="8" />
             <line x1="8" y1="1" x2="1" y2="8" />
           </svg>
@@ -212,29 +251,40 @@ function Titlebar({ onMinimize, onClose }: { onMinimize: () => void; onClose: ()
   )
 }
 
-function UpdateBanner({ version, onInstall, onDismiss }: {
+function UpdateBanner({
+  version,
+  onInstall,
+  onDismiss
+}: {
   version: string
   onInstall: () => void
   onDismiss: () => void
-}) {
+}): React.JSX.Element {
   return (
-    <div style={{
-      background: '#1e1433',
-      borderBottom: '1px solid rgba(124,92,191,0.3)',
-      padding: '6px 14px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      flexShrink: 0,
-    }}>
+    <div
+      style={{
+        background: '#1e1433',
+        borderBottom: '1px solid rgba(124,92,191,0.3)',
+        padding: '6px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0
+      }}
+    >
       <span style={{ fontSize: 12, color: '#b39ddb' }}>v{version} available</span>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button
           onClick={onInstall}
           style={{
-            background: 'var(--accent)', border: 'none', borderRadius: 4,
-            color: '#fff', fontSize: 11, fontWeight: 600,
-            padding: '4px 10px', cursor: 'pointer',
+            background: 'var(--accent)',
+            border: 'none',
+            borderRadius: 4,
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 600,
+            padding: '4px 10px',
+            cursor: 'pointer'
           }}
         >
           Update &amp; Restart
@@ -242,16 +292,30 @@ function UpdateBanner({ version, onInstall, onDismiss }: {
         <button
           onClick={onDismiss}
           style={{
-            background: 'transparent', border: 'none',
-            color: '#555560', cursor: 'pointer', fontSize: 13, padding: '0 2px',
+            background: 'transparent',
+            border: 'none',
+            color: '#555560',
+            cursor: 'pointer',
+            fontSize: 13,
+            padding: '0 2px'
           }}
-        >✕</button>
+        >
+          ✕
+        </button>
       </div>
     </div>
   )
 }
 
-function TitleBtn({ onClick, hoverColor, children }: { onClick: () => void; hoverColor: string; children: React.ReactNode }) {
+function TitleBtn({
+  onClick,
+  hoverColor,
+  children
+}: {
+  onClick: () => void
+  hoverColor: string
+  children: React.ReactNode
+}): React.JSX.Element {
   const [hovered, setHovered] = React.useState(false)
   return (
     <button
@@ -270,7 +334,7 @@ function TitleBtn({ onClick, hoverColor, children }: { onClick: () => void; hove
         color: hovered ? hoverColor : '#444450',
         cursor: 'pointer',
         transition: 'background 0.12s, color 0.12s',
-        padding: 0,
+        padding: 0
       }}
     >
       {children}

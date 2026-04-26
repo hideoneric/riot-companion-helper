@@ -27,16 +27,26 @@ const DEFAULTS: AppSettings = {
   porofessorEnabled: true,
   blitzVisible: true,
   porofessorVisible: true,
-  themeColor: '#7c5cbf',
+  themeColor: '#7c5cbf'
 }
 
 const store = new Store<AppSettings>({ defaults: DEFAULTS })
+
+function normalizePollingInterval(value: unknown): number {
+  return [1, 2, 3, 5, 10].includes(value as number) ? (value as number) : DEFAULTS.pollingInterval
+}
+
+function normalizeThemeColor(value: unknown): string {
+  return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : DEFAULTS.themeColor
+}
 
 export function getSettings(): AppSettings {
   return {
     blitzPath: store.get('blitzPath', DEFAULTS.blitzPath),
     launchWithWindows: store.get('launchWithWindows', DEFAULTS.launchWithWindows),
-    pollingInterval: store.get('pollingInterval', DEFAULTS.pollingInterval),
+    pollingInterval: normalizePollingInterval(
+      store.get('pollingInterval', DEFAULTS.pollingInterval)
+    ),
     monitoringEnabled: store.get('monitoringEnabled', DEFAULTS.monitoringEnabled),
     leagueEnabled: store.get('leagueEnabled', DEFAULTS.leagueEnabled),
     valorantEnabled: store.get('valorantEnabled', DEFAULTS.valorantEnabled),
@@ -45,7 +55,7 @@ export function getSettings(): AppSettings {
     porofessorEnabled: store.get('porofessorEnabled', DEFAULTS.porofessorEnabled),
     blitzVisible: store.get('blitzVisible', DEFAULTS.blitzVisible),
     porofessorVisible: store.get('porofessorVisible', DEFAULTS.porofessorVisible),
-    themeColor: store.get('themeColor', DEFAULTS.themeColor),
+    themeColor: normalizeThemeColor(store.get('themeColor', DEFAULTS.themeColor))
   }
 }
 

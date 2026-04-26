@@ -14,9 +14,11 @@ interface Props {
 }
 
 export function SettingsPage({ sub, settings, onSave }: Props) {
-  return sub === 'general'
-    ? <GeneralSettings settings={settings} onSave={onSave} />
-    : <BehaviorSettings settings={settings} onSave={onSave} />
+  return sub === 'general' ? (
+    <GeneralSettings settings={settings} onSave={onSave} />
+  ) : (
+    <BehaviorSettings settings={settings} onSave={onSave} />
+  )
 }
 
 /* ─── General ──────────────────────────────────────────────── */
@@ -25,7 +27,13 @@ function isValidPath(p: string): boolean {
   return !p || p.toLowerCase().endsWith('.exe') || p.toLowerCase().endsWith('.lnk')
 }
 
-function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s: Settings) => Promise<void> }) {
+function GeneralSettings({
+  settings,
+  onSave
+}: {
+  settings: Settings
+  onSave: (s: Settings) => Promise<void>
+}) {
   const [blitzPath, setBlitzPath] = useState(settings.blitzPath)
   const [porofessorPath, setPorofessorPath] = useState(settings.porofessorPath)
   const [interval, setInterval] = useState(settings.pollingInterval)
@@ -34,9 +42,15 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
   const blitzPathValid = isValidPath(blitzPath)
   const porofessorPathValid = isValidPath(porofessorPath)
 
-  useEffect(() => { setBlitzPath(settings.blitzPath) }, [settings.blitzPath])
-  useEffect(() => { setPorofessorPath(settings.porofessorPath) }, [settings.porofessorPath])
-  useEffect(() => { setInterval(settings.pollingInterval) }, [settings.pollingInterval])
+  useEffect(() => {
+    setBlitzPath(settings.blitzPath)
+  }, [settings.blitzPath])
+  useEffect(() => {
+    setPorofessorPath(settings.porofessorPath)
+  }, [settings.porofessorPath])
+  useEffect(() => {
+    setInterval(settings.pollingInterval)
+  }, [settings.pollingInterval])
 
   const handleBrowseBlitz = async () => {
     const p = await window.api.browse()
@@ -82,10 +96,15 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
             onChange={(e) => setBlitzPath(e.target.value)}
             placeholder="C:\...\Blitz.exe"
             style={{
-              flex: 1, background: '#28282d',
+              flex: 1,
+              background: '#28282d',
               border: `1px solid ${blitzPathValid ? '#3a3a3e' : '#c0392b'}`,
-              borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
-              minWidth: 0,
+              borderRadius: 6,
+              padding: '6px 10px',
+              color: '#ffffff',
+              fontSize: 12,
+              outline: 'none',
+              minWidth: 0
             }}
           />
           <OutlinedButton onClick={handleUpdateBlitz} disabled={!blitzPathValid || savingBlitz}>
@@ -93,10 +112,18 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
           </OutlinedButton>
         </div>
         {!blitzPathValid && blitzPath && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe or .lnk file</div>
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>
+            Must be a .exe or .lnk file
+          </div>
         )}
         <MutedButton onClick={handleBrowseBlitz}>Browse…</MutedButton>
       </SettingRow>
+
+      <VisibilityToggleRow
+        label="Enabled"
+        on={settings.blitzEnabled}
+        onToggle={() => onSave({ ...settings, blitzEnabled: !settings.blitzEnabled })}
+      />
 
       <VisibilityToggleRow
         label="Show on Home page"
@@ -107,28 +134,51 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
       <div style={{ height: 1, background: '#2c2c32', margin: '20px 0' }} />
 
       {/* Porofessor */}
-      <SettingRow label={<span>Porofessor <span style={{ fontSize: 11, color: '#555560', fontWeight: 400 }}>(League only)</span></span>}>
+      <SettingRow
+        label={
+          <span>
+            Porofessor{' '}
+            <span style={{ fontSize: 11, color: '#555560', fontWeight: 400 }}>(League only)</span>
+          </span>
+        }
+      >
         <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
           <input
             value={porofessorPath}
             onChange={(e) => setPorofessorPath(e.target.value)}
             placeholder="C:\...\Porofessor.exe"
             style={{
-              flex: 1, background: '#28282d',
+              flex: 1,
+              background: '#28282d',
               border: `1px solid ${porofessorPathValid ? '#3a3a3e' : '#c0392b'}`,
-              borderRadius: 6, padding: '6px 10px', color: '#ffffff', fontSize: 12, outline: 'none',
-              minWidth: 0,
+              borderRadius: 6,
+              padding: '6px 10px',
+              color: '#ffffff',
+              fontSize: 12,
+              outline: 'none',
+              minWidth: 0
             }}
           />
-          <OutlinedButton onClick={handleUpdatePorofessor} disabled={!porofessorPathValid || savingPorofessor}>
+          <OutlinedButton
+            onClick={handleUpdatePorofessor}
+            disabled={!porofessorPathValid || savingPorofessor}
+          >
             {savingPorofessor ? 'Saving…' : 'Update'}
           </OutlinedButton>
         </div>
         {!porofessorPathValid && porofessorPath && (
-          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>Must be a .exe or .lnk file</div>
+          <div style={{ fontSize: 11, color: '#c0392b', marginTop: 5 }}>
+            Must be a .exe or .lnk file
+          </div>
         )}
         <MutedButton onClick={handleBrowsePorofessor}>Browse…</MutedButton>
       </SettingRow>
+
+      <VisibilityToggleRow
+        label="Enabled"
+        on={settings.porofessorEnabled}
+        onToggle={() => onSave({ ...settings, porofessorEnabled: !settings.porofessorEnabled })}
+      />
 
       <VisibilityToggleRow
         label="Show on Home page"
@@ -146,12 +196,20 @@ function GeneralSettings({ settings, onSave }: { settings: Settings; onSave: (s:
           value={interval}
           onChange={(e) => handleUpdateInterval(Number(e.target.value))}
           style={{
-            background: '#28282d', border: '1px solid #3a3a3e', borderRadius: 6,
-            padding: '6px 10px', color: '#ffffff', fontSize: 12, cursor: 'pointer', outline: 'none',
+            background: '#28282d',
+            border: '1px solid #3a3a3e',
+            borderRadius: 6,
+            padding: '6px 10px',
+            color: '#ffffff',
+            fontSize: 12,
+            cursor: 'pointer',
+            outline: 'none'
           }}
         >
           {[1, 2, 3, 5, 10].map((s) => (
-            <option key={s} value={s}>{s}s</option>
+            <option key={s} value={s}>
+              {s}s
+            </option>
           ))}
         </select>
       </SettingRow>
@@ -167,9 +225,21 @@ function MutedButton({ onClick, children }: { onClick: () => void; children: Rea
   return (
     <button
       onClick={onClick}
-      style={{ background: 'transparent', border: 'none', color: '#555560', cursor: 'pointer', fontSize: 11, padding: '4px 0', textAlign: 'left' }}
-      onMouseEnter={(e) => { e.currentTarget.style.color = '#8e8e9a' }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = '#555560' }}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        color: '#555560',
+        cursor: 'pointer',
+        fontSize: 11,
+        padding: '4px 0',
+        textAlign: 'left'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = '#8e8e9a'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = '#555560'
+      }}
     >
       {children}
     </button>
@@ -178,7 +248,13 @@ function MutedButton({ onClick, children }: { onClick: () => void; children: Rea
 
 /* ─── Behavior ─────────────────────────────────────────────── */
 
-function BehaviorSettings({ settings, onSave }: { settings: Settings; onSave: (s: Settings) => Promise<void> }) {
+function BehaviorSettings({
+  settings,
+  onSave
+}: {
+  settings: Settings
+  onSave: (s: Settings) => Promise<void>
+}) {
   const [monitoring, setMonitoring] = useState(settings.monitoringEnabled)
   const [startup, setStartup] = useState(settings.launchWithWindows)
   const [dirty, setDirty] = useState(false)
@@ -237,7 +313,7 @@ function BehaviorSettings({ settings, onSave }: { settings: Settings; onSave: (s
             alignItems: 'center',
             paddingTop: 20,
             borderTop: '1px solid #2c2c32',
-            marginTop: 'auto',
+            marginTop: 'auto'
           }}
         >
           <button
@@ -252,7 +328,7 @@ function BehaviorSettings({ settings, onSave }: { settings: Settings; onSave: (s
               fontSize: 13,
               fontWeight: 600,
               cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.7 : 1,
+              opacity: saving ? 0.7 : 1
             }}
           >
             {saving ? 'Saving…' : 'Save'}
@@ -265,10 +341,14 @@ function BehaviorSettings({ settings, onSave }: { settings: Settings; onSave: (s
               color: '#8e8e9a',
               fontSize: 13,
               cursor: 'pointer',
-              padding: '7px 8px',
+              padding: '7px 8px'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#8e8e9a' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ffffff'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#8e8e9a'
+            }}
           >
             Discard
           </button>
@@ -290,7 +370,16 @@ function PageHeading({ children }: { children: React.ReactNode }) {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 style={{ fontSize: 12, fontWeight: 600, color: '#8e8e9a', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+    <h2
+      style={{
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#8e8e9a',
+        margin: '0 0 14px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em'
+      }}
+    >
       {children}
     </h2>
   )
@@ -300,31 +389,59 @@ function SettingRow({ label, children }: { label: React.ReactNode; children: Rea
   return (
     <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {children}
-      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{children}</div>
     </div>
   )
 }
 
-function VisibilityToggleRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
+function VisibilityToggleRow({
+  label,
+  on,
+  onToggle
+}: {
+  label: string
+  on: boolean
+  onToggle: () => void
+}) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, maxWidth: 560 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 12,
+        maxWidth: 560
+      }}
+    >
       <span style={{ fontSize: 12, color: '#8e8e9a' }}>{label}</span>
       <button
         onClick={onToggle}
         title={on ? 'Hide' : 'Show'}
         style={{
-          width: 30, height: 16, borderRadius: 8, border: 'none', padding: 0,
-          cursor: 'pointer', background: on ? 'var(--accent)' : '#3a3a3e',
-          position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+          width: 30,
+          height: 16,
+          borderRadius: 8,
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          background: on ? 'var(--accent)' : '#3a3a3e',
+          position: 'relative',
+          flexShrink: 0,
+          transition: 'background 0.2s'
         }}
       >
-        <span style={{
-          position: 'absolute', top: 2, left: on ? 16 : 2,
-          width: 12, height: 12, borderRadius: '50%', background: '#ffffff',
-          transition: 'left 0.2s',
-        }} />
+        <span
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: on ? 16 : 2,
+            width: 12,
+            height: 12,
+            borderRadius: '50%',
+            background: '#ffffff',
+            transition: 'left 0.2s'
+          }}
+        />
       </button>
     </div>
   )
@@ -333,7 +450,7 @@ function VisibilityToggleRow({ label, on, onToggle }: { label: string; on: boole
 function OutlinedButton({
   onClick,
   disabled,
-  children,
+  children
 }: {
   onClick: () => void
   disabled?: boolean
@@ -347,7 +464,10 @@ function OutlinedButton({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered && !disabled ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
+        background:
+          hovered && !disabled
+            ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
+            : 'transparent',
         border: `1px solid ${disabled ? '#3a3a3e' : 'var(--accent)'}`,
         borderRadius: 6,
         padding: '6px 14px',
@@ -356,7 +476,7 @@ function OutlinedButton({
         fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
         whiteSpace: 'nowrap',
-        transition: 'background 0.12s',
+        transition: 'background 0.12s'
       }}
     >
       {children}
@@ -367,7 +487,7 @@ function OutlinedButton({
 function CheckboxRow({
   label,
   checked,
-  onChange,
+  onChange
 }: {
   label: string
   checked: boolean
@@ -380,7 +500,7 @@ function CheckboxRow({
         alignItems: 'center',
         gap: 10,
         cursor: 'pointer',
-        userSelect: 'none',
+        userSelect: 'none'
       }}
     >
       <span
@@ -395,28 +515,42 @@ function CheckboxRow({
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          transition: 'background 0.15s, border-color 0.15s',
+          transition: 'background 0.15s, border-color 0.15s'
         }}
       >
         {checked && (
           <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-            <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M1 4l3 3 5-6"
+              stroke="#fff"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         )}
       </span>
-      <span onClick={onChange} style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
+      <span onClick={onChange} style={{ fontSize: 13, color: '#d0d0d8' }}>
+        {label}
+      </span>
     </label>
   )
 }
 
 const ACCENT_PRESETS = [
-  '#7c5cbf', '#3b82f6', '#06b6d4', '#10b981',
-  '#ef4444', '#f59e0b', '#ec4899', '#84cc16',
+  '#7c5cbf',
+  '#3b82f6',
+  '#06b6d4',
+  '#10b981',
+  '#ef4444',
+  '#f59e0b',
+  '#ec4899',
+  '#84cc16'
 ]
 
 function AppearanceSection({
   settings,
-  onSave,
+  onSave
 }: {
   settings: Settings
   onSave: (s: Settings) => Promise<void>
@@ -428,7 +562,15 @@ function AppearanceSection({
     <div style={{ marginTop: 20 }}>
       <SectionHeading>Appearance</SectionHeading>
       <SettingRow label="Accent color">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            position: 'relative'
+          }}
+        >
           {ACCENT_PRESETS.map((color) => {
             const active = settings.themeColor === color
             return (
@@ -437,10 +579,16 @@ function AppearanceSection({
                 onClick={() => onSave({ ...settings, themeColor: color })}
                 title={color}
                 style={{
-                  width: 24, height: 24, borderRadius: '50%', border: 'none',
-                  background: color, cursor: 'pointer', padding: 0, flexShrink: 0,
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: color,
+                  cursor: 'pointer',
+                  padding: 0,
+                  flexShrink: 0,
                   outline: active ? '2px solid #ffffff' : '2px solid transparent',
-                  outlineOffset: 2,
+                  outlineOffset: 2
                 }}
               />
             )
@@ -450,11 +598,16 @@ function AppearanceSection({
             onClick={() => colorInputRef.current?.click()}
             title="Custom color"
             style={{
-              width: 24, height: 24, borderRadius: '50%', border: 'none',
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              border: 'none',
               background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
-              cursor: 'pointer', padding: 0, flexShrink: 0,
+              cursor: 'pointer',
+              padding: 0,
+              flexShrink: 0,
               outline: isCustom ? '2px solid #ffffff' : '2px solid transparent',
-              outlineOffset: 2,
+              outlineOffset: 2
             }}
           />
           <input

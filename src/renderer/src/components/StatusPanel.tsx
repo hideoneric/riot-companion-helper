@@ -1,4 +1,4 @@
-import React from 'react'
+import type { JSX } from 'react'
 
 interface Props {
   leagueRunning: boolean
@@ -7,12 +7,17 @@ interface Props {
   blitzPathSet: boolean
 }
 
-export function StatusPanel({ leagueRunning, blitzRunning, monitoringEnabled, blitzPathSet }: Props) {
+export function StatusPanel({
+  leagueRunning,
+  blitzRunning,
+  monitoringEnabled,
+  blitzPathSet
+}: Props): JSX.Element {
   const label = !blitzPathSet
     ? 'WAITING FOR BLITZ PATH'
     : !monitoringEnabled
-    ? 'MONITORING PAUSED'
-    : 'MONITORING ACTIVE'
+      ? 'MONITORING PAUSED'
+      : 'MONITORING ACTIVE'
 
   const labelColor = !blitzPathSet ? '#f0a500' : !monitoringEnabled ? '#888899' : '#7c5cbf'
 
@@ -22,7 +27,7 @@ export function StatusPanel({ leagueRunning, blitzRunning, monitoringEnabled, bl
         padding: '28px 32px 24px',
         textAlign: 'center',
         borderBottom: '1px solid #2d2b45',
-        background: '#0f0e17',
+        background: '#0f0e17'
       }}
     >
       <div
@@ -32,7 +37,7 @@ export function StatusPanel({ leagueRunning, blitzRunning, monitoringEnabled, bl
           letterSpacing: '0.14em',
           color: labelColor,
           marginBottom: 20,
-          textTransform: 'uppercase',
+          textTransform: 'uppercase'
         }}
       >
         ◉ {label}
@@ -50,7 +55,7 @@ export function StatusPanel({ leagueRunning, blitzRunning, monitoringEnabled, bl
   )
 }
 
-function ProcessRow({ label, running }: { label: string; running: boolean }) {
+function ProcessRow({ label, running }: { label: string; running: boolean }): JSX.Element {
   return (
     <div
       style={{
@@ -58,7 +63,7 @@ function ProcessRow({ label, running }: { label: string; running: boolean }) {
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 12,
-        fontSize: 13,
+        fontSize: 13
       }}
     >
       <span style={{ color: '#a0a0b8' }}>{label}</span>
@@ -71,7 +76,7 @@ function ProcessRow({ label, running }: { label: string; running: boolean }) {
             background: running ? '#4caf50' : '#888899',
             display: 'inline-block',
             boxShadow: running ? '0 0 6px #4caf5099' : 'none',
-            transition: 'background 0.3s, box-shadow 0.3s',
+            transition: 'background 0.3s, box-shadow 0.3s'
           }}
         />
         <span style={{ color: running ? '#4caf50' : '#888899', fontSize: 12, minWidth: 72 }}>
