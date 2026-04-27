@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { Sidebar } from './components/Sidebar'
-import { SubNav } from './components/SubNav'
 import { HomePage } from './pages/HomePage'
 import { SettingsPage } from './pages/SettingsPage'
 
@@ -43,6 +41,7 @@ export interface LogEntry {
 
 export interface Settings {
   blitzPath: string
+  blitzName: string
   launchWithWindows: boolean
   pollingInterval: number
   monitoringEnabled: boolean
@@ -50,14 +49,14 @@ export interface Settings {
   valorantEnabled: boolean
   blitzEnabled: boolean
   porofessorPath: string
+  porofessorName: string
   porofessorEnabled: boolean
   blitzVisible: boolean
   porofessorVisible: boolean
   themeColor: string
 }
 
-export type Page = 'home' | 'settings'
-export type SubPage = 'general' | 'behavior'
+export type Page = 'dashboard' | 'games' | 'companions' | 'activity' | 'settings'
 
 export type UpdateStatus =
   | { status: 'checking' | 'available' | 'not-available' }
@@ -66,8 +65,7 @@ export type UpdateStatus =
   | { status: 'error'; message: string }
 
 export default function App() {
-  const [activePage, setActivePage] = useState<Page>('home')
-  const [activeSubPage, setActiveSubPage] = useState<SubPage>('general')
+  const [activePage, setActivePage] = useState<Page>('dashboard')
   const [appState, setAppState] = useState<AppState>({
     leagueRunning: false,
     blitzRunning: false,
@@ -86,6 +84,7 @@ export default function App() {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>({
     blitzPath: '',
+    blitzName: '',
     launchWithWindows: false,
     pollingInterval: 3,
     monitoringEnabled: true,
@@ -93,10 +92,11 @@ export default function App() {
     valorantEnabled: true,
     blitzEnabled: true,
     porofessorPath: '',
+    porofessorName: '',
     porofessorEnabled: true,
     blitzVisible: true,
     porofessorVisible: true,
-    themeColor: '#7c5cbf'
+    themeColor: '#ff4058'
   })
 
   useEffect(() => {
@@ -131,14 +131,13 @@ export default function App() {
     setSettings(nextSettings)
   }
 
-  const navigateSettings = (subPage: SubPage = 'general') => {
-    setActivePage('settings')
-    setActiveSubPage(subPage)
-  }
-
   return (
     <div className="app-shell" style={{ '--accent': settings.themeColor } as React.CSSProperties}>
-      <Titlebar onMinimize={() => window.api.minimize()} onClose={() => window.api.hideToTray()} />
+      <Titlebar
+        appState={appState}
+        onMinimize={() => window.api.minimize()}
+        onClose={() => window.api.hideToTray()}
+      />
 
       {updateStatus?.status === 'ready' && !updateDismissed && (
         <UpdateBanner
@@ -149,29 +148,20 @@ export default function App() {
       )}
 
       <div className="app-body">
-        <Sidebar
-          activePage={activePage}
-          appState={appState}
-          settings={settings}
-          onNavigate={setActivePage}
-        />
-
-        {activePage === 'settings' && (
-          <SubNav activeSub={activeSubPage} onNavigate={setActiveSubPage} />
-        )}
-
         <main className="app-main">
-          {activePage === 'home' && (
+          <TopTabs activePage={activePage} onNavigate={setActivePage} />
+          {activePage !== 'settings' && (
             <HomePage
+              activePage={activePage}
               appState={appState}
               logs={logs}
               settings={settings}
               onSaveSettings={handleSaveSettings}
-              onNavigateToSettings={() => navigateSettings('general')}
+              onNavigate={setActivePage}
             />
           )}
           {activePage === 'settings' && (
-            <SettingsPage sub={activeSubPage} settings={settings} onSave={handleSaveSettings} />
+            <SettingsPage settings={settings} onSave={handleSaveSettings} />
           )}
         </main>
       </div>
@@ -179,12 +169,34 @@ export default function App() {
   )
 }
 
-function Titlebar({ onMinimize, onClose }: { onMinimize: () => void; onClose: () => void }) {
+function Titlebar({
+  appState,
+  onMinimize,
+  onClose
+}: {
+  appState: AppState
+  onMinimize: () => void
+  onClose: () => void
+}) {
+  const ready = (appState.blitzPathSet || appState.porofessorPathSet) && appState.monitoringEnabled
+  const label =
+    !appState.blitzPathSet && !appState.porofessorPathSet
+      ? 'Setup needed'
+      : appState.monitoringEnabled
+        ? 'Monitoring active'
+        : 'Monitoring paused'
+
   return (
     <header className="titlebar">
-      <div className="titlebar-brand">
-        <span className="titlebar-mark">R</span>
-        <span>Riot Companion Helper</span>
+      <div className="titlebar-left">
+        <div className="titlebar-brand">
+          <span className="titlebar-mark">R</span>
+          <span>Riot Companion Helper</span>
+        </div>
+        <span className={`titlebar-status ${ready ? 'active' : 'muted'}`.trim()}>
+          <span />
+          {label}
+        </span>
       </div>
       <div className="titlebar-actions">
         <TitleBtn title="Minimize" onClick={onMinimize}>
@@ -209,6 +221,36 @@ function Titlebar({ onMinimize, onClose }: { onMinimize: () => void; onClose: ()
         </TitleBtn>
       </div>
     </header>
+  )
+}
+
+const TABS: { page: Page; label: string }[] = [
+  { page: 'dashboard', label: 'Dashboard' },
+  { page: 'games', label: 'Games' },
+  { page: 'companions', label: 'Companions' },
+  { page: 'activity', label: 'Activity' },
+  { page: 'settings', label: 'Settings' }
+]
+
+function TopTabs({
+  activePage,
+  onNavigate
+}: {
+  activePage: Page
+  onNavigate: (page: Page) => void
+}) {
+  return (
+    <nav className="top-tabs">
+      {TABS.map((item) => (
+        <button
+          key={item.page}
+          className={`top-tab ${activePage === item.page ? 'active' : ''}`.trim()}
+          onClick={() => onNavigate(item.page)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </nav>
   )
 }
 

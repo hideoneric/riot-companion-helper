@@ -22,6 +22,7 @@ describe('settings-store', () => {
   it('returns defaults when nothing is stored', () => {
     const s = getSettings()
     expect(s.blitzPath).toBe('')
+    expect(s.blitzName).toBe('')
     expect(s.launchWithWindows).toBe(false)
     expect(s.pollingInterval).toBe(3)
     expect(s.monitoringEnabled).toBe(true)
@@ -30,10 +31,21 @@ describe('settings-store', () => {
   it('saves and retrieves a value', () => {
     saveSettings({
       blitzPath: 'C:\\Blitz\\Blitz.exe',
+      blitzName: 'Blitz',
       launchWithWindows: false,
       pollingInterval: 3,
-      monitoringEnabled: true
+      monitoringEnabled: true,
+      leagueEnabled: true,
+      valorantEnabled: true,
+      blitzEnabled: true,
+      porofessorPath: '',
+      porofessorName: '',
+      porofessorEnabled: true,
+      blitzVisible: true,
+      porofessorVisible: true,
+      themeColor: '#ff4058'
     })
     expect(getSettings().blitzPath).toBe('C:\\Blitz\\Blitz.exe')
+    expect(getSettings().blitzName).toBe('Blitz')
   })
 })

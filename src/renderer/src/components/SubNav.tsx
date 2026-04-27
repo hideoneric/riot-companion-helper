@@ -1,4 +1,4 @@
-import type { SubPage } from '../App'
+type SubPage = 'general' | 'behavior'
 
 interface Props {
   activeSub: SubPage
