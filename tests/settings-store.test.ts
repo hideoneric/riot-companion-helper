@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // Mock electron-store before importing the module
 vi.mock('electron-store', () => {
@@ -6,8 +6,10 @@ vi.mock('electron-store', () => {
   return {
     default: vi.fn().mockImplementation(function () {
       this.get = (key: string, def: unknown) => store[key] ?? def
-      this.set = (key: string, val: unknown) => { store[key] = val }
-    }),
+      this.set = (key: string, val: unknown) => {
+        store[key] = val
+      }
+    })
   }
 })
 
@@ -26,7 +28,12 @@ describe('settings-store', () => {
   })
 
   it('saves and retrieves a value', () => {
-    saveSettings({ blitzPath: 'C:\\Blitz\\Blitz.exe', launchWithWindows: false, pollingInterval: 3, monitoringEnabled: true })
+    saveSettings({
+      blitzPath: 'C:\\Blitz\\Blitz.exe',
+      launchWithWindows: false,
+      pollingInterval: 3,
+      monitoringEnabled: true
+    })
     expect(getSettings().blitzPath).toBe('C:\\Blitz\\Blitz.exe')
   })
 })

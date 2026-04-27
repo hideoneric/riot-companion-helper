@@ -1,54 +1,71 @@
 import React from 'react'
-import type { Page } from '../App'
+import type { AppState, Page, Settings } from '../App'
+import { getReadiness } from '../lib/command-center'
+import { StatusDot } from './CommandUi'
 
 interface Props {
   activePage: Page
+  appState: AppState
+  settings: Settings
   onNavigate: (page: Page) => void
 }
 
 const NAV_ITEMS: { page: Page; label: string; icon: React.ReactNode }[] = [
   {
     page: 'home',
-    label: 'Home',
+    label: 'Command',
     icon: (
-      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-        <rect x="1" y="1" width="5.5" height="5.5" rx="1" fill="currentColor" />
-        <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" fill="currentColor" />
-        <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" fill="currentColor" />
-        <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1" fill="currentColor" />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 3h12v4H2z" fill="currentColor" opacity="0.9" />
+        <path d="M2 9h5v4H2z" fill="currentColor" opacity="0.55" />
+        <path d="M9 9h5v4H9z" fill="currentColor" opacity="0.55" />
       </svg>
-    ),
+    )
   },
   {
     page: 'settings',
     label: 'Settings',
     icon: (
-      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-        <circle cx="7.5" cy="7.5" r="2" fill="currentColor" />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.5" />
         <path
-          d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M2.697 2.697l1.06 1.06M11.243 11.243l1.06 1.06M2.697 12.303l1.06-1.06M11.243 3.757l1.06-1.06"
+          d="M8 2v2M8 12v2M2 8h2M12 8h2M3.76 3.76l1.42 1.42M10.82 10.82l1.42 1.42M3.76 12.24l1.42-1.42M10.82 5.18l1.42-1.42"
           stroke="currentColor"
-          strokeWidth="1.4"
           strokeLinecap="round"
+          strokeWidth="1.4"
         />
       </svg>
-    ),
-  },
+    )
+  }
 ]
 
-export function Sidebar({ activePage, onNavigate }: Props) {
+export function Sidebar({ activePage, appState, settings, onNavigate }: Props) {
+  const pathConfigured = appState.blitzPathSet || appState.porofessorPathSet
+  const readiness = getReadiness({
+    pathConfigured,
+    monitoringEnabled: appState.monitoringEnabled
+  })
+  const visibleCompanions = Number(settings.blitzVisible) + Number(settings.porofessorVisible)
+
   return (
-    <div
-      style={{
-        width: 170,
-        flexShrink: 0,
-        background: '#111114',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRight: '1px solid #2c2c32',
-      }}
-    >
-      <nav style={{ display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <div className="sidebar-logo">R</div>
+        <div>
+          <div className="sidebar-title">Riot Helper</div>
+          <div className="sidebar-subtitle">Companion control</div>
+        </div>
+      </div>
+
+      <div className={`sidebar-status ${readiness.tone}`}>
+        <StatusDot tone={readiness.tone} pulse={readiness.tone === 'active'} />
+        <div>
+          <div>{readiness.label}</div>
+          <span>{visibleCompanions} visible helpers</span>
+        </div>
+      </div>
+
+      <nav className="sidebar-nav">
         {NAV_ITEMS.map(({ page, label, icon }) => (
           <NavItem
             key={page}
@@ -59,7 +76,7 @@ export function Sidebar({ activePage, onNavigate }: Props) {
           />
         ))}
       </nav>
-    </div>
+    </aside>
   )
 }
 
@@ -67,42 +84,16 @@ function NavItem({
   label,
   icon,
   active,
-  onClick,
+  onClick
 }: {
   label: string
   icon: React.ReactNode
   active: boolean
   onClick: () => void
 }) {
-  const [hovered, setHovered] = React.useState(false)
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '0 16px',
-        height: 40,
-        background: active || hovered ? '#1a1a1e' : 'transparent',
-        border: 'none',
-        borderLeft: `3px solid ${active ? 'var(--accent)' : 'transparent'}`,
-        borderRight: 'none',
-        borderTop: 'none',
-        borderBottom: 'none',
-        color: active ? '#ffffff' : hovered ? '#d0d0d8' : '#8e8e9a',
-        cursor: 'pointer',
-        fontSize: 13,
-        fontWeight: active ? 600 : 400,
-        textAlign: 'left',
-        width: '100%',
-        transition: 'background 0.12s, color 0.12s',
-        paddingLeft: active ? 13 : 16,
-      }}
-    >
-      <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{icon}</span>
+    <button className={`sidebar-nav-item ${active ? 'active' : ''}`.trim()} onClick={onClick}>
+      <span>{icon}</span>
       <span>{label}</span>
     </button>
   )

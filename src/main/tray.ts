@@ -1,11 +1,10 @@
 import { Tray, Menu, nativeImage, app } from 'electron'
-import * as path from 'path'
 
 export function createTray(
   iconPath: string,
   onOpen: () => void,
   onToggleMonitoring: () => void,
-  isMonitoring: () => boolean,
+  isMonitoring: () => boolean
 ): Tray {
   const icon = nativeImage.createFromPath(iconPath)
   const tray = new Tray(icon)
@@ -13,15 +12,20 @@ export function createTray(
 
   const rebuild = () => {
     const monitoring = isMonitoring()
-    tray.setContextMenu(Menu.buildFromTemplate([
-      { label: 'Open', click: onOpen },
-      {
-        label: monitoring ? 'Pause Monitoring' : 'Resume Monitoring',
-        click: () => { onToggleMonitoring(); rebuild() },
-      },
-      { type: 'separator' },
-      { label: 'Quit', click: () => app.quit() },
-    ]))
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: 'Open', click: onOpen },
+        {
+          label: monitoring ? 'Pause Monitoring' : 'Resume Monitoring',
+          click: () => {
+            onToggleMonitoring()
+            rebuild()
+          }
+        },
+        { type: 'separator' },
+        { label: 'Quit', click: () => app.quit() }
+      ])
+    )
     tray.setToolTip(`Riot Companion Helper — ${monitoring ? 'Monitoring' : 'Paused'}`)
   }
 
