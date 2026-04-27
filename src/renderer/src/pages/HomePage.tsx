@@ -316,7 +316,7 @@ function HelperRow({
       <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
         <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
         <span style={{ fontSize: 11, color: '#555560' }}>
-          {processLabel || 'No process selected'}
+          {processLabel || 'No helper process selected'}
         </span>
       </span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

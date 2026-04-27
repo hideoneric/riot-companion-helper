@@ -44,26 +44,26 @@ describe('Poller state machine', () => {
   beforeEach(() => {
     poller.setLeagueHelper({
       appPath: 'C:\\Helpers\\LeagueHelper.exe',
-      processName: 'LeagueClient.exe',
+      processName: 'LeagueHelper.exe',
       enabled: true,
       visible: true
     })
     poller.setValorantHelper({
       appPath: 'C:\\Helpers\\ValorantHelper.exe',
-      processName: 'VALORANT.exe',
+      processName: 'ValorantHelper.exe',
       enabled: true,
       visible: true
     })
   })
 
-  it('launches League helper when its configured process starts', () => {
+  it('launches League helper when League starts', () => {
     setProcessList(['LeagueClient.exe'])
     poller.tick()
     expect(leagueLauncher.launch).toHaveBeenCalledWith('C:\\Helpers\\LeagueHelper.exe')
     expect(valorantLauncher.launch).not.toHaveBeenCalled()
   })
 
-  it('launches Valorant helper when its configured process starts', () => {
+  it('launches Valorant helper when Valorant starts', () => {
     setProcessList(['VALORANT.exe'])
     poller.tick()
     expect(valorantLauncher.launch).toHaveBeenCalledWith('C:\\Helpers\\ValorantHelper.exe')
@@ -73,7 +73,7 @@ describe('Poller state machine', () => {
   it('does not launch disabled helpers', () => {
     poller.setLeagueHelper({
       appPath: 'C:\\Helpers\\LeagueHelper.exe',
-      processName: 'LeagueClient.exe',
+      processName: 'LeagueHelper.exe',
       enabled: false,
       visible: true
     })
@@ -85,7 +85,7 @@ describe('Poller state machine', () => {
   it('does not launch helpers missing path or process name', () => {
     poller.setLeagueHelper({
       appPath: '',
-      processName: 'LeagueClient.exe',
+      processName: 'LeagueHelper.exe',
       enabled: true,
       visible: true
     })
@@ -108,6 +108,15 @@ describe('Poller state machine', () => {
     poller.tick()
     expect(leagueLauncher.kill).toHaveBeenCalledOnce()
     expect(valorantLauncher.kill).not.toHaveBeenCalled()
+  })
+
+  it('does not launch when the helper process is already running', () => {
+    setProcessList(['LeagueClient.exe', 'LeagueHelper.exe'])
+    poller.tick()
+    expect(leagueLauncher.launch).not.toHaveBeenCalled()
+    expect(onLog).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'League helper already running - skipping launch' })
+    )
   })
 
   it('does not tick when monitoring is disabled', () => {

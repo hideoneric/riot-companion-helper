@@ -17,7 +17,9 @@ export class BlitzLauncher {
         : [blitzPath, [] as string[]]
       this.process = spawn(cmd, args, { detached: true, stdio: 'ignore' })
       this.process.unref()
-      this.process.on('exit', () => { this.process = null })
+      this.process.on('exit', () => {
+        this.process = null
+      })
     } catch (err) {
       this.process = null
       throw err
@@ -35,12 +37,11 @@ export class BlitzLauncher {
     }
   }
 
-  /** Force-kill by image name — used when Blitz was running before we launched it */
-  static killByName(): void {
+  static killByName(processName: string): void {
     try {
-      execSync('taskkill /IM Blitz.exe /F')
+      execSync(`taskkill /IM ${processName} /F`)
     } catch {
-      // Not running — ignore
+      // Not running - ignore
     }
   }
 }

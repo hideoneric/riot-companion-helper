@@ -184,12 +184,12 @@ function HelperSlotEditor({
         <MutedButton onClick={handleBrowse}>Browse...</MutedButton>
       </SettingRow>
 
-      <SettingRow label="Watched process">
+      <SettingRow label="Helper process">
         <div style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 560 }}>
           <input
             value={processName}
             onChange={(e) => setProcessName(e.target.value)}
-            placeholder="LeagueClient.exe"
+            placeholder="Helper.exe"
             list={`${title.replace(/\s+/g, '-')}-processes`}
             style={{
               flex: 1,
@@ -213,7 +213,7 @@ function HelperSlotEditor({
           </OutlinedButton>
         </div>
         <MutedButton onClick={() => onRefreshProcesses()}>
-          {loadingProcesses ? 'Refreshing...' : 'Refresh process list'}
+          {loadingProcesses ? 'Refreshing...' : 'Refresh helper process list'}
         </MutedButton>
       </SettingRow>
 

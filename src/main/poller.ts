@@ -38,6 +38,7 @@ type HelperKey = 'league' | 'valorant'
 
 interface HelperRuntime {
   label: string
+  gameProcessName: string
   settings: HelperSlotSettings
   launcher: BlitzLauncher
   processWasRunning: boolean
@@ -61,12 +62,14 @@ export class Poller {
     this.helpers = {
       league: {
         label: 'League helper',
+        gameProcessName: 'LeagueClient.exe',
         settings: { ...EMPTY_HELPER },
         launcher: opts.leagueLauncher,
         processWasRunning: false
       },
       valorant: {
         label: 'Valorant helper',
+        gameProcessName: 'VALORANT.exe',
         settings: { ...EMPTY_HELPER },
         launcher: opts.valorantLauncher,
         processWasRunning: false
@@ -98,12 +101,11 @@ export class Poller {
   }
 
   private isHelperRunning(helper: HelperRuntime): boolean {
-    if (!helper.settings.appPath) return false
-    const exeName = path.basename(helper.settings.appPath)
-    if (!exeName.toLowerCase().endsWith('.exe')) return helper.launcher.launchedPid !== null
+    const processName = helper.settings.processName || path.basename(helper.settings.appPath)
+    if (!processName) return false
 
     try {
-      return this.isProcessRunning(exeName)
+      return this.isProcessRunning(processName)
     } catch {
       return helper.launcher.launchedPid !== null
     }
@@ -125,7 +127,7 @@ export class Poller {
       helper.settings.enabled && !!helper.settings.appPath && !!helper.settings.processName
 
     if (processRunning && !helper.processWasRunning && ready) {
-      if (helper.launcher.launchedPid) {
+      if (helper.launcher.launchedPid || this.isHelperRunning(helper)) {
         this.log(`${helper.label} already running - skipping launch`)
       } else {
         this.log(`Launching ${helper.label}`)
@@ -138,6 +140,7 @@ export class Poller {
       }
     } else if (!processRunning && helper.processWasRunning) {
       helper.launcher.kill()
+      BlitzLauncher.killByName(helper.settings.processName)
       this.log(`${helper.label} closed`)
     }
 
@@ -150,8 +153,8 @@ export class Poller {
     let leagueRunning: boolean
     let valorantRunning: boolean
     try {
-      leagueRunning = this.isProcessRunning(this.helpers.league.settings.processName)
-      valorantRunning = this.isProcessRunning(this.helpers.valorant.settings.processName)
+      leagueRunning = this.isProcessRunning(this.helpers.league.gameProcessName)
+      valorantRunning = this.isProcessRunning(this.helpers.valorant.gameProcessName)
       this.consecutiveErrors = 0
     } catch {
       this.consecutiveErrors++
