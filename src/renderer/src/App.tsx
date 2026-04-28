@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { HomePage } from './pages/HomePage'
 import { SettingsPage } from './pages/SettingsPage'
 
@@ -146,7 +146,7 @@ export default function App() {
       window.api.getSettings().then(setSettings).catch(console.error)
       const unsubState = window.api.onStateUpdate(setAppState)
       const unsubLog = window.api.onLogEntry((entry) =>
-        setLogs((prev) => [entry, ...prev].slice(0, 100))
+        setLogs((prev) => [entry, ...prev].slice(0, 8))
       )
       const unsubNavigate = window.api.onNavigate((page) => {
         if (page === 'settings') setActivePage('settings')
@@ -165,10 +165,10 @@ export default function App() {
     }
   }, [])
 
-  const handleSaveSettings = async (nextSettings: Settings) => {
+  const handleSaveSettings = useCallback(async (nextSettings: Settings) => {
     await window.api.saveSettings(nextSettings)
     setSettings(nextSettings)
-  }
+  }, [])
 
   return (
     <div className="app-shell">

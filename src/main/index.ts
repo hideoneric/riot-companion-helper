@@ -157,6 +157,9 @@ app.whenReady().then(() => {
       const enabled = !s.monitoringEnabled
       saveSettings({ ...s, monitoringEnabled: enabled })
       poller.setMonitoring(enabled)
+      if (enabled && s.helpers.some((helper) => helper.path)) {
+        poller.startInterval(s.pollingInterval)
+      }
     },
     () => getSettings().monitoringEnabled
   )
@@ -168,8 +171,8 @@ app.whenReady().then(() => {
 
   app.on('before-quit', () => {
     isQuitting = true
-    if (launcher.launchedPid) launcher.kill()
-    if (porofessorLauncher.launchedPid) porofessorLauncher.kill()
+    if (launcher.launchedPid) void launcher.kill()
+    if (porofessorLauncher.launchedPid) void porofessorLauncher.kill()
   })
 
   app.on('window-all-closed', () => {

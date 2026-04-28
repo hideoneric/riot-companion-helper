@@ -1,4 +1,4 @@
-import { spawn, execSync } from 'child_process'
+import { execFile, spawn } from 'child_process'
 import type { ChildProcess } from 'child_process'
 
 export class BlitzLauncher {
@@ -17,30 +17,46 @@ export class BlitzLauncher {
         : [blitzPath, [] as string[]]
       this.process = spawn(cmd, args, { detached: true, stdio: 'ignore' })
       this.process.unref()
-      this.process.on('exit', () => { this.process = null })
+      this.process.on('exit', () => {
+        this.process = null
+      })
     } catch (err) {
       this.process = null
       throw err
     }
   }
 
-  kill(): void {
+  async kill(): Promise<void> {
     if (this.process?.pid) {
+      const pid = this.process.pid
+      this.process = null
       try {
-        execSync(`taskkill /PID ${this.process.pid} /F /T`)
+        await runTaskkill(['/PID', String(pid), '/F', '/T'])
       } catch {
         // Process may have already exited
       }
-      this.process = null
     }
   }
 
   /** Force-kill by image name — used when Blitz was running before we launched it */
-  static killByName(): void {
+  static async killByName(): Promise<void> {
     try {
-      execSync('taskkill /IM Blitz.exe /F')
+      await runTaskkill(['/IM', 'Blitz.exe', '/F'])
     } catch {
       // Not running — ignore
     }
   }
+}
+
+function runTaskkill(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile('taskkill', args, { windowsHide: true }, (error) => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      resolve()
+    })
+  })
 }

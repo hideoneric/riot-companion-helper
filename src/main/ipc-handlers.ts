@@ -1,5 +1,6 @@
 import { ipcMain, dialog } from 'electron'
 import { getSettings, saveSettings } from './settings-store'
+import type { AppSettings } from './settings-store'
 import { setLaunchWithWindows } from './startup'
 import type { Poller } from './poller'
 
@@ -27,6 +28,15 @@ export function registerIpcHandlers(poller: Poller) {
   ipcMain.handle('settings:get', () => getSettings())
 
   ipcMain.handle('settings:save', async (_e, newSettings) => {
+    const previousSettings = getSettings()
+    const monitoringChanged = newSettings.monitoringEnabled !== currentState.monitoringEnabled
+    const pollingUpdate = getPollingUpdate(
+      previousSettings,
+      newSettings,
+      currentState.monitoringEnabled
+    )
+    const shouldRefreshState = shouldRefreshPollingState(previousSettings, newSettings)
+
     saveSettings(newSettings)
     const [primaryHelper, secondaryHelper] = newSettings.helpers
 
@@ -40,10 +50,20 @@ export function registerIpcHandlers(poller: Poller) {
     )
     poller.setLeagueEnabled(newSettings.leagueEnabled)
     poller.setValorantEnabled(newSettings.valorantEnabled)
-    if (newSettings.monitoringEnabled !== currentState.monitoringEnabled) {
+    if (monitoringChanged) {
       poller.setMonitoring(newSettings.monitoringEnabled)
     }
-    poller.startInterval(newSettings.pollingInterval)
+    if (pollingUpdate === 'start') {
+      poller.startInterval(newSettings.pollingInterval)
+    } else if (pollingUpdate === 'stop') {
+      poller.stopInterval()
+    } else if (
+      shouldRefreshState &&
+      newSettings.monitoringEnabled &&
+      newSettings.helpers.some((helper) => helper.path)
+    ) {
+      void poller.tick()
+    }
     try {
       setLaunchWithWindows(newSettings.launchWithWindows)
     } catch {
@@ -57,5 +77,41 @@ export function registerIpcHandlers(poller: Poller) {
       properties: ['openFile']
     })
     return result.canceled ? null : result.filePaths[0]
+  })
+}
+
+export function getPollingUpdate(
+  previousSettings: AppSettings,
+  nextSettings: AppSettings,
+  currentMonitoringEnabled: boolean
+): 'start' | 'stop' | 'none' {
+  const hadHelperPath = previousSettings.helpers.some((helper) => helper.path)
+  const hasHelperPath = nextSettings.helpers.some((helper) => helper.path)
+
+  if (!nextSettings.monitoringEnabled || !hasHelperPath) return 'stop'
+  if (!currentMonitoringEnabled) return 'start'
+  if (previousSettings.pollingInterval !== nextSettings.pollingInterval) return 'start'
+  if (hadHelperPath !== hasHelperPath) return 'start'
+
+  return 'none'
+}
+
+export function shouldRefreshPollingState(
+  previousSettings: AppSettings,
+  nextSettings: AppSettings
+): boolean {
+  if (previousSettings.leagueEnabled !== nextSettings.leagueEnabled) return true
+  if (previousSettings.valorantEnabled !== nextSettings.valorantEnabled) return true
+
+  return nextSettings.helpers.some((nextHelper) => {
+    const previousHelper = previousSettings.helpers.find((helper) => helper.id === nextHelper.id)
+    if (!previousHelper) return true
+
+    return (
+      previousHelper.path !== nextHelper.path ||
+      previousHelper.enabled !== nextHelper.enabled ||
+      previousHelper.gameBindings.league !== nextHelper.gameBindings.league ||
+      previousHelper.gameBindings.valorant !== nextHelper.gameBindings.valorant
+    )
   })
 }

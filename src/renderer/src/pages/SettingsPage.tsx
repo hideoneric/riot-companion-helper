@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type React from 'react'
 import type { HelperConfig, Settings, UpdateStatus } from '../App'
 import { getCompanionDisplayName } from '../lib/companion-display'
@@ -69,14 +69,20 @@ function HelperSettingRow({
   useEffect(() => setDisplayName(helper.displayName), [helper.displayName])
   useEffect(() => setPathValue(helper.path), [helper.path])
 
-  const saveHelper = (patch: Partial<HelperConfig>) => {
-    const helpers = settings.helpers.map((item) =>
-      item.id === helper.id ? { ...item, ...patch } : item
-    )
-    return onSave(syncLegacyFields({ ...settings, helpers }))
-  }
+  const saveHelper = useCallback(
+    (patch: Partial<HelperConfig>) => {
+      const current = settings.helpers.find((item) => item.id === helper.id)
+      if (current && helperPatchIsNoop(current, patch)) return Promise.resolve()
 
-  const handleBrowse = async () => {
+      const helpers = settings.helpers.map((item) =>
+        item.id === helper.id ? { ...item, ...patch } : item
+      )
+      return onSave(syncLegacyFields({ ...settings, helpers }))
+    },
+    [helper.id, onSave, settings]
+  )
+
+  const handleBrowse = useCallback(async () => {
     const selectedPath = await window.api.browse()
     if (selectedPath) {
       const nextDetectedName = getCompanionDisplayName(selectedPath, '', fallbackName)
@@ -88,30 +94,50 @@ function HelperSettingRow({
         showOnOverview: true
       })
     }
-  }
+  }, [fallbackName, saveHelper])
 
-  const handleSaveDetails = () => {
+  const handleSaveDetails = useCallback(() => {
     if (!validPath) return
+    if (
+      pathValue === helper.path &&
+      displayName === helper.displayName &&
+      detectedName === helper.detectedName
+    ) {
+      return
+    }
     return saveHelper({
       path: pathValue,
       displayName,
       detectedName,
       enabled: !!pathValue && (helper.enabled || !helper.path)
     })
-  }
+  }, [
+    detectedName,
+    displayName,
+    helper.detectedName,
+    helper.displayName,
+    helper.enabled,
+    helper.path,
+    pathValue,
+    saveHelper,
+    validPath
+  ])
 
-  const handleRemove = () =>
-    saveHelper({
-      path: '',
-      displayName: '',
-      detectedName: '',
-      enabled: false,
-      gameBindings:
-        helper.id === 'helper-1'
-          ? { league: true, valorant: true }
-          : { league: true, valorant: false },
-      showOnOverview: true
-    })
+  const handleRemove = useCallback(
+    () =>
+      saveHelper({
+        path: '',
+        displayName: '',
+        detectedName: '',
+        enabled: false,
+        gameBindings:
+          helper.id === 'helper-1'
+            ? { league: true, valorant: true }
+            : { league: true, valorant: false },
+        showOnOverview: true
+      }),
+    [helper.id, saveHelper]
+  )
 
   return (
     <article className={`settings-helper ${configured ? 'configured' : 'setup'}`.trim()}>
@@ -312,6 +338,18 @@ function SettingRow({
 function isValidPath(path: string): boolean {
   const normalized = path.toLowerCase()
   return !path || normalized.endsWith('.exe') || normalized.endsWith('.lnk')
+}
+
+function helperPatchIsNoop(helper: HelperConfig, patch: Partial<HelperConfig>): boolean {
+  return Object.entries(patch).every(([key, value]) => {
+    const helperValue = helper[key as keyof HelperConfig]
+
+    if (typeof value === 'object' && value !== null) {
+      return JSON.stringify(helperValue) === JSON.stringify(value)
+    }
+
+    return helperValue === value
+  })
 }
 
 function updateStatusText(status: UpdateStatus | null): string {

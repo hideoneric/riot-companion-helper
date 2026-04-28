@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import type { AppState, HelperConfig, LogEntry, Page, Settings } from '../App'
 import { getCompanionDisplayName } from '../lib/companion-display'
 import { bindingLabel, syncLegacyFields } from '../lib/helper-config'
@@ -17,7 +18,20 @@ const levelClass: Record<LogEntry['level'], string> = {
 }
 
 export function HomePage({ appState, logs, settings, onSaveSettings, onNavigate }: Props) {
-  const helpers = settings.helpers.filter((helper) => helper.showOnOverview)
+  const helpers = useMemo(
+    () => settings.helpers.filter((helper) => helper.showOnOverview),
+    [settings.helpers]
+  )
+  const visibleLogs = useMemo(() => logs.slice(0, 8), [logs])
+  const handleLeagueToggle = useCallback(
+    () => onSaveSettings({ ...settings, leagueEnabled: !settings.leagueEnabled }),
+    [onSaveSettings, settings]
+  )
+  const handleValorantToggle = useCallback(
+    () => onSaveSettings({ ...settings, valorantEnabled: !settings.valorantEnabled }),
+    [onSaveSettings, settings]
+  )
+  const handleNavigateSettings = useCallback(() => onNavigate('settings'), [onNavigate])
 
   return (
     <div className="page overview-page">
@@ -28,16 +42,14 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigate 
           name="League of Legends"
           running={appState.leagueRunning}
           enabled={settings.leagueEnabled}
-          onToggle={() => onSaveSettings({ ...settings, leagueEnabled: !settings.leagueEnabled })}
+          onToggle={handleLeagueToggle}
         />
         <GameRow
           icon="VAL"
           name="Valorant"
           running={appState.valorantRunning}
           enabled={settings.valorantEnabled}
-          onToggle={() =>
-            onSaveSettings({ ...settings, valorantEnabled: !settings.valorantEnabled })
-          }
+          onToggle={handleValorantToggle}
         />
       </div>
 
@@ -53,7 +65,7 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigate 
               helper={helper}
               slotNumber={index + 1}
               running={running}
-              onConfigure={() => onNavigate('settings')}
+              onConfigure={handleNavigateSettings}
               onToggle={() => toggleHelper(settings, helper.id, onSaveSettings)}
             />
           )
@@ -61,7 +73,7 @@ export function HomePage({ appState, logs, settings, onSaveSettings, onNavigate 
       </div>
 
       <SectionHeader title="Recent activity" />
-      <ActivityList logs={logs.slice(0, 8)} />
+      <ActivityList logs={visibleLogs} />
     </div>
   )
 }
