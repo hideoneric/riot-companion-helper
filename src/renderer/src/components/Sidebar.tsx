@@ -12,7 +12,7 @@ interface Props {
 
 const NAV_ITEMS: { page: Page; label: string; icon: React.ReactNode }[] = [
   {
-    page: 'dashboard',
+    page: 'overview',
     label: 'Command',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

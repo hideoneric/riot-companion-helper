@@ -33,6 +33,10 @@ export function initUpdater(win: BrowserWindow) {
   setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000)
 }
 
+export function checkForUpdates() {
+  return autoUpdater.checkForUpdates()
+}
+
 export function installUpdate() {
   autoUpdater.quitAndInstall()
 }

@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react'
-import type { Settings } from '../App'
-import { PrimaryButton, SecondaryButton, SectionLabel, ToggleSwitch } from '../components/CommandUi'
+import { useEffect, useState } from 'react'
+import type React from 'react'
+import type { HelperConfig, Settings, UpdateStatus } from '../App'
 import { getCompanionDisplayName } from '../lib/companion-display'
+import { bindingLabel, syncLegacyFields } from '../lib/helper-config'
+import { SectionHeader, Toggle } from './HomePage'
 
 declare const window: Window & {
   api: {
@@ -11,69 +13,298 @@ declare const window: Window & {
 
 interface Props {
   settings: Settings
+  updateStatus: UpdateStatus | null
   onSave: (s: Settings) => Promise<void>
+  onCheckForUpdates: () => Promise<void>
 }
 
-const ACCENT_PRESETS = [
-  '#ff4058',
-  '#ef4444',
-  '#f59e0b',
-  '#10b981',
-  '#06b6d4',
-  '#3b82f6',
-  '#7c5cbf',
-  '#ec4899'
-]
-
-export function SettingsPage({ settings, onSave }: Props) {
+export function SettingsPage({ settings, updateStatus, onSave, onCheckForUpdates }: Props) {
   return (
-    <div className="settings-redesign">
-      <header className="settings-header">
-        <SectionLabel>Settings</SectionLabel>
-        <h1>Control how helpers launch, appear, and behave.</h1>
-      </header>
-
-      <div className="settings-layout">
-        <section className="settings-column wide">
-          <CompanionSettings settings={settings} onSave={onSave} />
-        </section>
-
-        <section className="settings-column">
-          <BehaviorSettings settings={settings} onSave={onSave} />
-          <PollingSettings settings={settings} onSave={onSave} />
-          <AppearanceSettings settings={settings} onSave={onSave} />
-        </section>
-      </div>
+    <div className="page settings-page">
+      <HelperSettings settings={settings} onSave={onSave} />
+      <MonitoringSettings settings={settings} onSave={onSave} />
+      <StartupSettings settings={settings} onSave={onSave} />
+      <UpdateSettings updateStatus={updateStatus} onCheckForUpdates={onCheckForUpdates} />
     </div>
   )
 }
 
-function CompanionSettings({ settings, onSave }: Props) {
+function HelperSettings({ settings, onSave }: Pick<Props, 'settings' | 'onSave'>) {
   return (
-    <div className="settings-panel-redesign">
-      <SectionLabel>Companions</SectionLabel>
-      <PathSetting
-        label="Blitz.gg"
-        detail="Shared helper for League and Valorant."
-        value={settings.blitzPath}
-        displayName={settings.blitzName}
-        fallbackName="Blitz.gg"
-        visible={settings.blitzVisible}
-        enabled={settings.blitzEnabled}
-        onSave={(next) => onSave({ ...settings, ...next })}
-      />
-      <div className="settings-divider" />
-      <PathSetting
-        label="Porofessor"
-        detail="League-only helper."
-        value={settings.porofessorPath}
-        displayName={settings.porofessorName}
-        fallbackName="Porofessor"
-        visible={settings.porofessorVisible}
-        enabled={settings.porofessorEnabled}
-        onSave={(next) => onSave({ ...settings, ...next })}
-        porofessor
-      />
+    <section>
+      <SectionHeader title="Helpers" note="Each helper can be bound to one or both games" />
+      <div className="settings-list">
+        {settings.helpers.map((helper, index) => (
+          <HelperSettingRow
+            key={helper.id}
+            helper={helper}
+            slotNumber={index + 1}
+            settings={settings}
+            onSave={onSave}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function HelperSettingRow({
+  helper,
+  slotNumber,
+  settings,
+  onSave
+}: {
+  helper: HelperConfig
+  slotNumber: number
+  settings: Settings
+  onSave: (s: Settings) => Promise<void>
+}) {
+  const [displayName, setDisplayName] = useState(helper.displayName)
+  const [pathValue, setPathValue] = useState(helper.path)
+  const configured = !!helper.path
+  const validPath = isValidPath(pathValue)
+  const fallbackName = `Helper slot ${slotNumber}`
+  const detectedName = getCompanionDisplayName(pathValue, '', fallbackName)
+
+  useEffect(() => setDisplayName(helper.displayName), [helper.displayName])
+  useEffect(() => setPathValue(helper.path), [helper.path])
+
+  const saveHelper = (patch: Partial<HelperConfig>) => {
+    const helpers = settings.helpers.map((item) =>
+      item.id === helper.id ? { ...item, ...patch } : item
+    )
+    return onSave(syncLegacyFields({ ...settings, helpers }))
+  }
+
+  const handleBrowse = async () => {
+    const selectedPath = await window.api.browse()
+    if (selectedPath) {
+      const nextDetectedName = getCompanionDisplayName(selectedPath, '', fallbackName)
+      setPathValue(selectedPath)
+      await saveHelper({
+        path: selectedPath,
+        detectedName: nextDetectedName,
+        enabled: true,
+        showOnOverview: true
+      })
+    }
+  }
+
+  const handleSaveDetails = () => {
+    if (!validPath) return
+    return saveHelper({
+      path: pathValue,
+      displayName,
+      detectedName,
+      enabled: !!pathValue && (helper.enabled || !helper.path)
+    })
+  }
+
+  const handleRemove = () =>
+    saveHelper({
+      path: '',
+      displayName: '',
+      detectedName: '',
+      enabled: false,
+      gameBindings:
+        helper.id === 'helper-1'
+          ? { league: true, valorant: true }
+          : { league: true, valorant: false },
+      showOnOverview: true
+    })
+
+  return (
+    <article className={`settings-helper ${configured ? 'configured' : 'setup'}`.trim()}>
+      <div className="row-icon">{configured ? 'APP' : slotNumber}</div>
+      <div className="settings-helper-main">
+        <div className="settings-helper-title">
+          <h3>
+            {configured
+              ? getCompanionDisplayName(helper.path, helper.displayName, helper.detectedName)
+              : `Helper slot ${slotNumber}`}
+          </h3>
+          <Toggle
+            checked={configured && helper.enabled}
+            disabled={!configured}
+            onToggle={() => saveHelper({ enabled: !helper.enabled })}
+          />
+        </div>
+
+        <div className="field-grid">
+          <label>
+            <span>Display name</span>
+            <input
+              className="input"
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              onBlur={() => handleSaveDetails()}
+              placeholder={detectedName}
+            />
+          </label>
+          <label>
+            <span>Path</span>
+            <div className="path-field">
+              <input
+                className={`input ${!validPath && pathValue ? 'invalid' : ''}`.trim()}
+                value={pathValue}
+                onChange={(event) => setPathValue(event.target.value)}
+                onBlur={() => handleSaveDetails()}
+                placeholder="Select a .exe or .lnk"
+              />
+              <button className="button compact" onClick={handleBrowse}>
+                Browse
+              </button>
+            </div>
+          </label>
+        </div>
+
+        {!validPath && pathValue && (
+          <div className="field-error">Path must end in .exe or .lnk</div>
+        )}
+
+        <div className="binding-row">
+          <span>Bind to</span>
+          <button
+            className={`chip-button ${helper.gameBindings.league ? 'active' : ''}`.trim()}
+            onClick={() =>
+              saveHelper({
+                gameBindings: {
+                  ...helper.gameBindings,
+                  league: !helper.gameBindings.league
+                }
+              })
+            }
+          >
+            League
+          </button>
+          <button
+            className={`chip-button ${helper.gameBindings.valorant ? 'active' : ''}`.trim()}
+            onClick={() =>
+              saveHelper({
+                gameBindings: {
+                  ...helper.gameBindings,
+                  valorant: !helper.gameBindings.valorant
+                }
+              })
+            }
+          >
+            Valorant
+          </button>
+          <em>{bindingLabel(helper)}</em>
+        </div>
+      </div>
+      <button className="text-button muted" onClick={handleRemove} disabled={!configured}>
+        Remove
+      </button>
+    </article>
+  )
+}
+
+function MonitoringSettings({ settings, onSave }: Pick<Props, 'settings' | 'onSave'>) {
+  return (
+    <section>
+      <SectionHeader title="Monitoring" />
+      <div className="settings-list">
+        <SettingRow
+          title="Watch for game processes"
+          detail="Starts or stops helpers when enabled games open or close"
+          control={
+            <Toggle
+              checked={settings.monitoringEnabled}
+              onToggle={() =>
+                onSave({ ...settings, monitoringEnabled: !settings.monitoringEnabled })
+              }
+            />
+          }
+        />
+        <SettingRow
+          title="Polling interval"
+          detail="How often the app checks for League or Valorant"
+          control={
+            <select
+              className="select"
+              value={settings.pollingInterval}
+              onChange={(event) =>
+                onSave({ ...settings, pollingInterval: Number(event.target.value) })
+              }
+            >
+              {[1, 2, 3, 5, 10].map((seconds) => (
+                <option key={seconds} value={seconds}>
+                  {seconds} seconds
+                </option>
+              ))}
+            </select>
+          }
+        />
+      </div>
+    </section>
+  )
+}
+
+function StartupSettings({ settings, onSave }: Pick<Props, 'settings' | 'onSave'>) {
+  return (
+    <section>
+      <SectionHeader title="Startup" />
+      <div className="settings-list">
+        <SettingRow
+          title="Launch with Windows"
+          detail="Open in the tray after sign-in"
+          control={
+            <Toggle
+              checked={settings.launchWithWindows}
+              onToggle={() =>
+                onSave({ ...settings, launchWithWindows: !settings.launchWithWindows })
+              }
+            />
+          }
+        />
+      </div>
+    </section>
+  )
+}
+
+function UpdateSettings({
+  updateStatus,
+  onCheckForUpdates
+}: Pick<Props, 'updateStatus' | 'onCheckForUpdates'>) {
+  return (
+    <section>
+      <SectionHeader title="Updates" />
+      <div className="settings-list">
+        <SettingRow
+          title="GitHub releases"
+          detail={updateStatusText(updateStatus)}
+          control={
+            <button
+              className="button compact"
+              onClick={onCheckForUpdates}
+              disabled={updateStatus?.status === 'checking'}
+            >
+              {updateStatus?.status === 'checking' ? 'Checking...' : 'Check'}
+            </button>
+          }
+        />
+      </div>
+    </section>
+  )
+}
+
+function SettingRow({
+  title,
+  detail,
+  control
+}: {
+  title: string
+  detail: string
+  control: React.ReactNode
+}) {
+  return (
+    <div className="setting-row">
+      <div>
+        <h3>{title}</h3>
+        <p>{detail}</p>
+      </div>
+      <div className="setting-control">{control}</div>
     </div>
   )
 }
@@ -83,202 +314,12 @@ function isValidPath(path: string): boolean {
   return !path || normalized.endsWith('.exe') || normalized.endsWith('.lnk')
 }
 
-function PathSetting({
-  label,
-  detail,
-  value,
-  displayName,
-  fallbackName,
-  visible,
-  enabled,
-  onSave,
-  porofessor = false
-}: {
-  label: string
-  detail: string
-  value: string
-  displayName: string
-  fallbackName: string
-  visible: boolean
-  enabled: boolean
-  onSave: (settings: Partial<Settings>) => Promise<void>
-  porofessor?: boolean
-}) {
-  const [pathValue, setPathValue] = useState(value)
-  const [nameValue, setNameValue] = useState(displayName)
-  const [saving, setSaving] = useState(false)
-  const pathValid = isValidPath(pathValue)
-  const detectedName = getCompanionDisplayName(pathValue, '', fallbackName)
-
-  useEffect(() => setPathValue(value), [value])
-  useEffect(() => setNameValue(displayName), [displayName])
-
-  const pathKey = porofessor ? 'porofessorPath' : 'blitzPath'
-  const nameKey = porofessor ? 'porofessorName' : 'blitzName'
-  const visibleKey = porofessor ? 'porofessorVisible' : 'blitzVisible'
-  const enabledKey = porofessor ? 'porofessorEnabled' : 'blitzEnabled'
-
-  const handleBrowse = async () => {
-    const selectedPath = await window.api.browse()
-    if (selectedPath) setPathValue(selectedPath)
-  }
-
-  const handleUpdate = async () => {
-    if (!pathValid) return
-    setSaving(true)
-    await onSave({ [pathKey]: pathValue, [nameKey]: nameValue } as Partial<Settings>)
-    setSaving(false)
-  }
-
-  return (
-    <div className="path-setting-redesign">
-      <div className="setting-heading">
-        <div>
-          <h2>{label}</h2>
-          <p>{detail}</p>
-        </div>
-        <div className="setting-toggles">
-          <span>Enabled</span>
-          <ToggleSwitch
-            on={enabled}
-            onToggle={() => onSave({ [enabledKey]: !enabled } as Partial<Settings>)}
-          />
-          <span>Visible</span>
-          <ToggleSwitch
-            on={visible}
-            onToggle={() => onSave({ [visibleKey]: !visible } as Partial<Settings>)}
-          />
-        </div>
-      </div>
-
-      <label>
-        <span>Display name</span>
-        <input
-          className="cc-input"
-          value={nameValue}
-          onChange={(event) => setNameValue(event.target.value)}
-          placeholder={detectedName}
-        />
-      </label>
-      <p className="detected-name">Auto-detected fallback: {detectedName}</p>
-
-      <label>
-        <span>Path</span>
-        <div className="path-row">
-          <input
-            className={`cc-input ${!pathValid && pathValue ? 'invalid' : ''}`.trim()}
-            value={pathValue}
-            onChange={(event) => setPathValue(event.target.value)}
-            placeholder="C:\..."
-          />
-          <SecondaryButton onClick={handleBrowse}>Browse</SecondaryButton>
-          <PrimaryButton onClick={handleUpdate} disabled={!pathValid || saving}>
-            {saving ? 'Saving...' : 'Update'}
-          </PrimaryButton>
-        </div>
-      </label>
-      {!pathValid && pathValue && <div className="field-error">Must be a .exe or .lnk file</div>}
-    </div>
-  )
-}
-
-function BehaviorSettings({ settings, onSave }: Props) {
-  return (
-    <div className="settings-panel-redesign">
-      <SectionLabel>Behavior</SectionLabel>
-      <SwitchRow
-        title="Monitoring"
-        detail="Watch enabled games and manage configured helpers."
-        checked={settings.monitoringEnabled}
-        onToggle={() => onSave({ ...settings, monitoringEnabled: !settings.monitoringEnabled })}
-      />
-      <div className="settings-divider" />
-      <SwitchRow
-        title="Launch with Windows"
-        detail="Register the app in the current user's startup apps."
-        checked={settings.launchWithWindows}
-        onToggle={() => onSave({ ...settings, launchWithWindows: !settings.launchWithWindows })}
-      />
-    </div>
-  )
-}
-
-function PollingSettings({ settings, onSave }: Props) {
-  return (
-    <div className="settings-panel-redesign">
-      <SectionLabel>Polling</SectionLabel>
-      <h2>Detection interval</h2>
-      <p>Shorter intervals feel more responsive and use slightly more background work.</p>
-      <div className="segmented-control">
-        {[1, 2, 3, 5, 10].map((seconds) => (
-          <button
-            key={seconds}
-            className={settings.pollingInterval === seconds ? 'active' : ''}
-            onClick={() => onSave({ ...settings, pollingInterval: seconds })}
-          >
-            {seconds}s
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function AppearanceSettings({ settings, onSave }: Props) {
-  const colorInputRef = React.useRef<HTMLInputElement>(null)
-  const isCustom = !ACCENT_PRESETS.includes(settings.themeColor)
-
-  return (
-    <div className="settings-panel-redesign">
-      <SectionLabel>Appearance</SectionLabel>
-      <h2>Accent color</h2>
-      <p>Used for active tabs, buttons, and enabled toggles.</p>
-      <div className="swatch-row">
-        {ACCENT_PRESETS.map((color) => (
-          <button
-            key={color}
-            className={`swatch ${settings.themeColor === color ? 'active' : ''}`.trim()}
-            style={{ background: color }}
-            title={color}
-            aria-label={`Use accent ${color}`}
-            onClick={() => onSave({ ...settings, themeColor: color })}
-          />
-        ))}
-        <button
-          className={`swatch custom ${isCustom ? 'active' : ''}`.trim()}
-          title="Custom color"
-          aria-label="Choose custom color"
-          onClick={() => colorInputRef.current?.click()}
-        />
-        <input
-          ref={colorInputRef}
-          type="color"
-          value={settings.themeColor}
-          onChange={(event) => onSave({ ...settings, themeColor: event.target.value })}
-        />
-      </div>
-    </div>
-  )
-}
-
-function SwitchRow({
-  title,
-  detail,
-  checked,
-  onToggle
-}: {
-  title: string
-  detail: string
-  checked: boolean
-  onToggle: () => void
-}) {
-  return (
-    <div className="switch-row">
-      <div>
-        <h2>{title}</h2>
-        <p>{detail}</p>
-      </div>
-      <ToggleSwitch on={checked} onToggle={onToggle} />
-    </div>
-  )
+function updateStatusText(status: UpdateStatus | null): string {
+  if (!status) return 'Check the latest GitHub release manually'
+  if (status.status === 'checking') return 'Checking GitHub releases'
+  if (status.status === 'available') return `Update v${status.version} is available`
+  if (status.status === 'downloading') return `Downloading v${status.version}: ${status.progress}%`
+  if (status.status === 'ready') return `Update v${status.version} is ready to install`
+  if (status.status === 'error') return status.message
+  return 'No update available'
 }

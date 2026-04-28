@@ -26,6 +26,9 @@ describe('settings-store', () => {
     expect(s.launchWithWindows).toBe(false)
     expect(s.pollingInterval).toBe(3)
     expect(s.monitoringEnabled).toBe(true)
+    expect(s.helpers).toHaveLength(2)
+    expect(s.helpers[0].displayName).toBe('')
+    expect(s.helpers[0].enabled).toBe(false)
   })
 
   it('saves and retrieves a value', () => {
@@ -43,9 +46,54 @@ describe('settings-store', () => {
       porofessorEnabled: true,
       blitzVisible: true,
       porofessorVisible: true,
-      themeColor: '#ff4058'
+      themeColor: '#ff4058',
+      helpers: [
+        {
+          id: 'helper-1',
+          path: 'C:\\Blitz\\Blitz.exe',
+          displayName: 'Blitz',
+          detectedName: 'Blitz',
+          enabled: true,
+          gameBindings: { league: true, valorant: true },
+          showOnOverview: true
+        },
+        {
+          id: 'helper-2',
+          path: '',
+          displayName: '',
+          detectedName: '',
+          enabled: false,
+          gameBindings: { league: true, valorant: false },
+          showOnOverview: true
+        }
+      ]
     })
     expect(getSettings().blitzPath).toBe('C:\\Blitz\\Blitz.exe')
     expect(getSettings().blitzName).toBe('Blitz')
+    expect(getSettings().themeColor).toBe('#d9e6ff')
+  })
+
+  it('keeps legacy settings compatible when helpers are missing', () => {
+    saveSettings({
+      blitzPath: 'C:\\Legacy\\Helper.exe',
+      blitzName: 'Legacy Helper',
+      launchWithWindows: false,
+      pollingInterval: 3,
+      monitoringEnabled: true,
+      leagueEnabled: true,
+      valorantEnabled: true,
+      blitzEnabled: true,
+      porofessorPath: '',
+      porofessorName: '',
+      porofessorEnabled: true,
+      blitzVisible: true,
+      porofessorVisible: true,
+      themeColor: '#ff4058'
+    } as ReturnType<typeof getSettings>)
+
+    const settings = getSettings()
+    expect(settings.helpers[0].path).toBe('C:\\Legacy\\Helper.exe')
+    expect(settings.helpers[0].displayName).toBe('Legacy Helper')
+    expect(settings.helpers[0].enabled).toBe(true)
   })
 })

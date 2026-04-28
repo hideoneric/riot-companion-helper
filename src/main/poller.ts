@@ -37,18 +37,23 @@ export class Poller {
   private leagueEnabled = true
   private valorantEnabled = true
   private blitzEnabled = true
+  private blitzLeagueBinding = true
+  private blitzValorantBinding = true
   private anyEnabledWasRunning = false
   private consecutiveErrors = 0
   private intervalHandle: ReturnType<typeof setInterval> | null = null
   private _blitzPath = ''
   private _porofessorPath = ''
   private porofessorEnabled = true
-  private leagueWasRunningForPoro = false
+  private porofessorLeagueBinding = true
+  private porofessorValorantBinding = false
+  private porofessorWasRunningForBinding = false
   private lastState: PollerState | null = null
 
   private broadcastIfChanged(state: PollerState) {
     const s = this.lastState
-    if (s &&
+    if (
+      s &&
       s.leagueRunning === state.leagueRunning &&
       s.blitzRunning === state.blitzRunning &&
       s.valorantRunning === state.valorantRunning &&
@@ -60,7 +65,8 @@ export class Poller {
       s.porofessorRunning === state.porofessorRunning &&
       s.porofessorPathSet === state.porofessorPathSet &&
       s.porofessorEnabled === state.porofessorEnabled
-    ) return
+    )
+      return
     this.lastState = state
     this.opts.onStateChange(state)
   }
@@ -71,27 +77,29 @@ export class Poller {
     this.opts.onLog({
       timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
       message,
-      level,
+      level
     })
   }
 
   private isLeagueRunning(): boolean {
     const output = execSync('tasklist /FI "IMAGENAME eq LeagueClient.exe" /NH', {
-      encoding: 'utf8',
+      encoding: 'utf8'
     }) as unknown as string
     return output.includes('LeagueClient.exe')
   }
 
   private isValorantRunning(): boolean {
     const output = execSync('tasklist /FI "IMAGENAME eq VALORANT.exe" /NH', {
-      encoding: 'utf8',
+      encoding: 'utf8'
     }) as unknown as string
     return output.includes('VALORANT.exe')
   }
 
   private isBlitzRunning(): boolean {
     try {
-      const out = execSync('tasklist /FI "IMAGENAME eq Blitz.exe" /NH', { encoding: 'utf8' }) as unknown as string
+      const out = execSync('tasklist /FI "IMAGENAME eq Blitz.exe" /NH', {
+        encoding: 'utf8'
+      }) as unknown as string
       return out.includes('Blitz.exe')
     } catch {
       return this.opts.launcher.launchedPid !== null
@@ -105,7 +113,9 @@ export class Poller {
       return this.opts.porofessorLauncher.launchedPid !== null
     }
     try {
-      const out = execSync(`tasklist /FI "IMAGENAME eq ${exeName}" /NH`, { encoding: 'utf8' }) as unknown as string
+      const out = execSync(`tasklist /FI "IMAGENAME eq ${exeName}" /NH`, {
+        encoding: 'utf8'
+      }) as unknown as string
       return out.includes(exeName)
     } catch {
       return this.opts.porofessorLauncher.launchedPid !== null
@@ -125,7 +135,10 @@ export class Poller {
       this.consecutiveErrors++
       if (this.consecutiveErrors === 3) {
         this.log('Process detection error — check app permissions', 'error')
-        this.opts.onTrayNotify?.('Riot Companion Helper', 'Process detection error — check app permissions')
+        this.opts.onTrayNotify?.(
+          'Riot Companion Helper',
+          'Process detection error — check app permissions'
+        )
       }
       return
     }
@@ -136,10 +149,10 @@ export class Poller {
     if (valorantRunning && !this.valorantWasRunning) this.log('Valorant detected')
     else if (!valorantRunning && this.valorantWasRunning) this.log('Valorant closed')
 
-    // Blitz: launch when any *enabled* game starts, kill when all enabled games stop
+    // Primary helper: launch when any enabled, bound game starts.
     const anyEnabledRunning =
-      (leagueRunning && this.leagueEnabled) ||
-      (valorantRunning && this.valorantEnabled)
+      (leagueRunning && this.leagueEnabled && this.blitzLeagueBinding) ||
+      (valorantRunning && this.valorantEnabled && this.blitzValorantBinding)
 
     if (anyEnabledRunning && !this.anyEnabledWasRunning) {
       if (this.opts.launcher.launchedPid) {
@@ -159,9 +172,11 @@ export class Poller {
       this.log('Blitz.gg closed')
     }
 
-    // Porofessor: launch when league (and leagueEnabled) starts, kill when it stops
-    const leagueEnabledAndRunning = leagueRunning && this.leagueEnabled
-    if (leagueEnabledAndRunning && !this.leagueWasRunningForPoro) {
+    // Secondary helper: launch when any enabled, bound game starts.
+    const porofessorBoundGameRunning =
+      (leagueRunning && this.leagueEnabled && this.porofessorLeagueBinding) ||
+      (valorantRunning && this.valorantEnabled && this.porofessorValorantBinding)
+    if (porofessorBoundGameRunning && !this.porofessorWasRunningForBinding) {
       if (this.opts.porofessorLauncher.launchedPid) {
         this.log('Porofessor already running — skipping launch')
       } else if (this._porofessorPath && this.porofessorEnabled) {
@@ -173,7 +188,7 @@ export class Poller {
           this.log(`Failed to launch Porofessor: ${(e as Error).message}`, 'error')
         }
       }
-    } else if (!leagueEnabledAndRunning && this.leagueWasRunningForPoro) {
+    } else if (!porofessorBoundGameRunning && this.porofessorWasRunningForBinding) {
       this.opts.porofessorLauncher.kill()
       this.log('Porofessor closed')
     }
@@ -181,7 +196,7 @@ export class Poller {
     this.leagueWasRunning = leagueRunning
     this.valorantWasRunning = valorantRunning
     this.anyEnabledWasRunning = anyEnabledRunning
-    this.leagueWasRunningForPoro = leagueEnabledAndRunning
+    this.porofessorWasRunningForBinding = porofessorBoundGameRunning
 
     this.broadcastIfChanged({
       leagueRunning,
@@ -194,11 +209,18 @@ export class Poller {
       blitzEnabled: this.blitzEnabled,
       porofessorRunning: this.isPorofessorRunning(),
       porofessorPathSet: !!this._porofessorPath,
-      porofessorEnabled: this.porofessorEnabled,
+      porofessorEnabled: this.porofessorEnabled
     })
   }
 
-  setBlitzPath(p: string) { this._blitzPath = p }
+  setBlitzPath(p: string) {
+    this._blitzPath = p
+  }
+
+  setBlitzGameBindings(bindings: { league: boolean; valorant: boolean }) {
+    this.blitzLeagueBinding = bindings.league
+    this.blitzValorantBinding = bindings.valorant
+  }
 
   setBlitzEnabled(enabled: boolean) {
     this.blitzEnabled = enabled
@@ -218,11 +240,18 @@ export class Poller {
       blitzEnabled: this.blitzEnabled,
       porofessorRunning: this.isPorofessorRunning(),
       porofessorPathSet: !!this._porofessorPath,
-      porofessorEnabled: this.porofessorEnabled,
+      porofessorEnabled: this.porofessorEnabled
     })
   }
 
-  setPorofessorPath(p: string) { this._porofessorPath = p }
+  setPorofessorPath(p: string) {
+    this._porofessorPath = p
+  }
+
+  setPorofessorGameBindings(bindings: { league: boolean; valorant: boolean }) {
+    this.porofessorLeagueBinding = bindings.league
+    this.porofessorValorantBinding = bindings.valorant
+  }
 
   setPorofessorEnabled(enabled: boolean) {
     this.porofessorEnabled = enabled
@@ -241,13 +270,17 @@ export class Poller {
       blitzEnabled: this.blitzEnabled,
       porofessorRunning: this.isPorofessorRunning(),
       porofessorPathSet: !!this._porofessorPath,
-      porofessorEnabled: this.porofessorEnabled,
+      porofessorEnabled: this.porofessorEnabled
     })
   }
 
-  setLeagueEnabled(enabled: boolean) { this.leagueEnabled = enabled }
+  setLeagueEnabled(enabled: boolean) {
+    this.leagueEnabled = enabled
+  }
 
-  setValorantEnabled(enabled: boolean) { this.valorantEnabled = enabled }
+  setValorantEnabled(enabled: boolean) {
+    this.valorantEnabled = enabled
+  }
 
   setMonitoring(enabled: boolean) {
     this.monitoringEnabled = enabled
@@ -269,7 +302,7 @@ export class Poller {
       blitzEnabled: this.blitzEnabled,
       porofessorRunning: this.isPorofessorRunning(),
       porofessorPathSet: !!this._porofessorPath,
-      porofessorEnabled: this.porofessorEnabled,
+      porofessorEnabled: this.porofessorEnabled
     })
   }
 

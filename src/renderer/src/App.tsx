@@ -15,6 +15,7 @@ declare const window: Window & {
     browse: () => Promise<string | null>
     onNavigate: (cb: (page: string) => void) => () => void
     onUpdateStatus: (cb: (s: UpdateStatus) => void) => () => void
+    checkForUpdates: () => Promise<void>
     installUpdate: () => void
   }
 }
@@ -39,6 +40,19 @@ export interface LogEntry {
   level: 'info' | 'warn' | 'error'
 }
 
+export interface HelperConfig {
+  id: string
+  path: string
+  displayName: string
+  detectedName: string
+  enabled: boolean
+  gameBindings: {
+    league: boolean
+    valorant: boolean
+  }
+  showOnOverview: boolean
+}
+
 export interface Settings {
   blitzPath: string
   blitzName: string
@@ -54,18 +68,58 @@ export interface Settings {
   blitzVisible: boolean
   porofessorVisible: boolean
   themeColor: string
+  helpers: HelperConfig[]
 }
 
-export type Page = 'dashboard' | 'games' | 'companions' | 'activity' | 'settings'
+export type Page = 'overview' | 'settings'
 
 export type UpdateStatus =
-  | { status: 'checking' | 'available' | 'not-available' }
+  | { status: 'checking' }
+  | { status: 'available'; version: string }
+  | { status: 'not-available' }
   | { status: 'downloading'; version: string; progress: number }
   | { status: 'ready'; version: string }
   | { status: 'error'; message: string }
 
+const DEFAULT_SETTINGS: Settings = {
+  blitzPath: '',
+  blitzName: '',
+  launchWithWindows: false,
+  pollingInterval: 3,
+  monitoringEnabled: true,
+  leagueEnabled: true,
+  valorantEnabled: true,
+  blitzEnabled: false,
+  porofessorPath: '',
+  porofessorName: '',
+  porofessorEnabled: false,
+  blitzVisible: true,
+  porofessorVisible: true,
+  themeColor: '#d9e6ff',
+  helpers: [
+    {
+      id: 'helper-1',
+      path: '',
+      displayName: '',
+      detectedName: '',
+      enabled: false,
+      gameBindings: { league: true, valorant: true },
+      showOnOverview: true
+    },
+    {
+      id: 'helper-2',
+      path: '',
+      displayName: '',
+      detectedName: '',
+      enabled: false,
+      gameBindings: { league: true, valorant: false },
+      showOnOverview: true
+    }
+  ]
+}
+
 export default function App() {
-  const [activePage, setActivePage] = useState<Page>('dashboard')
+  const [activePage, setActivePage] = useState<Page>('overview')
   const [appState, setAppState] = useState<AppState>({
     leagueRunning: false,
     blitzRunning: false,
@@ -74,30 +128,15 @@ export default function App() {
     blitzPathSet: false,
     leagueEnabled: true,
     valorantEnabled: true,
-    blitzEnabled: true,
+    blitzEnabled: false,
     porofessorRunning: false,
     porofessorPathSet: false,
-    porofessorEnabled: true
+    porofessorEnabled: false
   })
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const [settings, setSettings] = useState<Settings>({
-    blitzPath: '',
-    blitzName: '',
-    launchWithWindows: false,
-    pollingInterval: 3,
-    monitoringEnabled: true,
-    leagueEnabled: true,
-    valorantEnabled: true,
-    blitzEnabled: true,
-    porofessorPath: '',
-    porofessorName: '',
-    porofessorEnabled: true,
-    blitzVisible: true,
-    porofessorVisible: true,
-    themeColor: '#ff4058'
-  })
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
 
   useEffect(() => {
     if (!window.api) return undefined
@@ -132,7 +171,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell" style={{ '--accent': settings.themeColor } as React.CSSProperties}>
+    <div className="app-shell">
       <Titlebar
         appState={appState}
         onMinimize={() => window.api.minimize()}
@@ -147,24 +186,25 @@ export default function App() {
         />
       )}
 
-      <div className="app-body">
-        <main className="app-main">
-          <TopTabs activePage={activePage} onNavigate={setActivePage} />
-          {activePage !== 'settings' && (
-            <HomePage
-              activePage={activePage}
-              appState={appState}
-              logs={logs}
-              settings={settings}
-              onSaveSettings={handleSaveSettings}
-              onNavigate={setActivePage}
-            />
-          )}
-          {activePage === 'settings' && (
-            <SettingsPage settings={settings} onSave={handleSaveSettings} />
-          )}
-        </main>
-      </div>
+      <main className="app-main">
+        <TopTabs activePage={activePage} onNavigate={setActivePage} />
+        {activePage === 'overview' ? (
+          <HomePage
+            appState={appState}
+            logs={logs}
+            settings={settings}
+            onSaveSettings={handleSaveSettings}
+            onNavigate={setActivePage}
+          />
+        ) : (
+          <SettingsPage
+            settings={settings}
+            updateStatus={updateStatus}
+            onSave={handleSaveSettings}
+            onCheckForUpdates={() => window.api.checkForUpdates()}
+          />
+        )}
+      </main>
     </div>
   )
 }
@@ -178,59 +218,32 @@ function Titlebar({
   onMinimize: () => void
   onClose: () => void
 }) {
-  const ready = (appState.blitzPathSet || appState.porofessorPathSet) && appState.monitoringEnabled
-  const label =
-    !appState.blitzPathSet && !appState.porofessorPathSet
-      ? 'Setup needed'
-      : appState.monitoringEnabled
-        ? 'Monitoring active'
-        : 'Monitoring paused'
+  const hasHelper = appState.blitzPathSet || appState.porofessorPathSet
+  const label = !hasHelper
+    ? 'Setup needed'
+    : appState.monitoringEnabled
+      ? 'Monitoring on'
+      : 'Monitoring off'
+  const statusClass = !hasHelper ? 'setup' : appState.monitoringEnabled ? 'running' : 'idle'
 
   return (
     <header className="titlebar">
       <div className="titlebar-left">
-        <div className="titlebar-brand">
-          <span className="titlebar-mark">R</span>
-          <span>Riot Companion Helper</span>
-        </div>
-        <span className={`titlebar-status ${ready ? 'active' : 'muted'}`.trim()}>
-          <span />
-          {label}
-        </span>
+        <div className="app-mark">R</div>
+        <div className="app-name">Riot Companion Helper</div>
+        <div className={`titlebar-status ${statusClass}`}>{label}</div>
       </div>
       <div className="titlebar-actions">
-        <TitleBtn title="Minimize" onClick={onMinimize}>
-          <svg width="10" height="2" viewBox="0 0 10 2" fill="currentColor" aria-hidden="true">
-            <rect width="10" height="2" rx="1" />
-          </svg>
-        </TitleBtn>
-        <TitleBtn title="Hide to tray" onClick={onClose} danger>
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="1.5"
-            aria-hidden="true"
-          >
-            <path d="M1.5 1.5 8.5 8.5" />
-            <path d="M8.5 1.5 1.5 8.5" />
-          </svg>
-        </TitleBtn>
+        <TitleButton title="Minimize" onClick={onMinimize}>
+          -
+        </TitleButton>
+        <TitleButton title="Hide to tray" onClick={onClose}>
+          x
+        </TitleButton>
       </div>
     </header>
   )
 }
-
-const TABS: { page: Page; label: string }[] = [
-  { page: 'dashboard', label: 'Dashboard' },
-  { page: 'games', label: 'Games' },
-  { page: 'companions', label: 'Companions' },
-  { page: 'activity', label: 'Activity' },
-  { page: 'settings', label: 'Settings' }
-]
 
 function TopTabs({
   activePage,
@@ -241,15 +254,18 @@ function TopTabs({
 }) {
   return (
     <nav className="top-tabs">
-      {TABS.map((item) => (
-        <button
-          key={item.page}
-          className={`top-tab ${activePage === item.page ? 'active' : ''}`.trim()}
-          onClick={() => onNavigate(item.page)}
-        >
-          {item.label}
-        </button>
-      ))}
+      <button
+        className={`top-tab ${activePage === 'overview' ? 'active' : ''}`.trim()}
+        onClick={() => onNavigate('overview')}
+      >
+        Overview
+      </button>
+      <button
+        className={`top-tab ${activePage === 'settings' ? 'active' : ''}`.trim()}
+        onClick={() => onNavigate('settings')}
+      >
+        Settings
+      </button>
     </nav>
   )
 }
@@ -265,49 +281,30 @@ function UpdateBanner({
 }) {
   return (
     <div className="update-banner">
-      <span>Update v{version} is ready</span>
+      <span>Update v{version} is ready.</span>
       <div className="update-actions">
-        <button className="cc-button primary compact" onClick={onInstall}>
-          Update & Restart
+        <button className="button compact" onClick={onInstall}>
+          Restart
         </button>
-        <button className="cc-icon-button" onClick={onDismiss} title="Dismiss" aria-label="Dismiss">
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="1.5"
-            aria-hidden="true"
-          >
-            <path d="M1.5 1.5 8.5 8.5" />
-            <path d="M8.5 1.5 1.5 8.5" />
-          </svg>
+        <button className="text-button muted" onClick={onDismiss}>
+          Dismiss
         </button>
       </div>
     </div>
   )
 }
 
-function TitleBtn({
+function TitleButton({
   title,
   onClick,
-  danger = false,
   children
 }: {
   title: string
   onClick: () => void
-  danger?: boolean
   children: React.ReactNode
 }) {
   return (
-    <button
-      className={`titlebar-button ${danger ? 'danger' : ''}`.trim()}
-      onClick={onClick}
-      title={title}
-      aria-label={title}
-    >
+    <button className="titlebar-button" onClick={onClick} title={title} aria-label={title}>
       {children}
     </button>
   )

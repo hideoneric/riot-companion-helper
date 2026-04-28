@@ -7,7 +7,7 @@ import { BlitzLauncher } from './launcher'
 import { Poller } from './poller'
 import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
-import { initUpdater, installUpdate } from './updater'
+import { checkForUpdates, initUpdater, installUpdate } from './updater'
 
 app.setName('Riot Companion Helper')
 let isQuitting = false
@@ -94,13 +94,13 @@ app.whenReady().then(() => {
     blitzRunning: false,
     valorantRunning: false,
     monitoringEnabled: settings.monitoringEnabled,
-    blitzPathSet: !!settings.blitzPath,
+    blitzPathSet: !!settings.helpers[0]?.path,
     leagueEnabled: settings.leagueEnabled,
     valorantEnabled: settings.valorantEnabled,
-    blitzEnabled: settings.blitzEnabled,
+    blitzEnabled: settings.helpers[0]?.enabled ?? false,
     porofessorRunning: false,
-    porofessorPathSet: !!settings.porofessorPath,
-    porofessorEnabled: settings.porofessorEnabled
+    porofessorPathSet: !!settings.helpers[1]?.path,
+    porofessorEnabled: settings.helpers[1]?.enabled ?? false
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
@@ -110,13 +110,30 @@ app.whenReady().then(() => {
   // settings:open navigates the renderer to the settings page instead of opening a new window
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
   ipcMain.on('update:install', () => installUpdate())
+  ipcMain.handle('update:check', () => {
+    if (is.dev) {
+      mainWindow?.webContents.send('update:status', { status: 'not-available' })
+      return Promise.resolve()
+    }
+    return checkForUpdates().catch((error) => {
+      mainWindow?.webContents.send('update:status', {
+        status: 'error',
+        message: (error as Error).message
+      })
+    })
+  })
 
-  poller.setBlitzPath(settings.blitzPath)
-  poller.setPorofessorPath(settings.porofessorPath)
-  poller.setPorofessorEnabled(settings.porofessorEnabled)
+  poller.setBlitzPath(settings.helpers[0]?.path ?? '')
+  poller.setBlitzEnabled(settings.helpers[0]?.enabled ?? false)
+  poller.setBlitzGameBindings(settings.helpers[0]?.gameBindings ?? { league: true, valorant: true })
+  poller.setPorofessorPath(settings.helpers[1]?.path ?? '')
+  poller.setPorofessorEnabled(settings.helpers[1]?.enabled ?? false)
+  poller.setPorofessorGameBindings(
+    settings.helpers[1]?.gameBindings ?? { league: true, valorant: false }
+  )
   poller.setLeagueEnabled(settings.leagueEnabled)
   poller.setValorantEnabled(settings.valorantEnabled)
-  if (settings.monitoringEnabled && (settings.blitzPath || settings.porofessorPath)) {
+  if (settings.monitoringEnabled && settings.helpers.some((helper) => helper.path)) {
     poller.startInterval(settings.pollingInterval)
   }
 

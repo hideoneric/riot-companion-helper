@@ -14,7 +14,7 @@ let currentState = {
   blitzEnabled: true,
   porofessorRunning: false,
   porofessorPathSet: false,
-  porofessorEnabled: true,
+  porofessorEnabled: true
 }
 
 export function setCurrentState(s: typeof currentState) {
@@ -28,10 +28,16 @@ export function registerIpcHandlers(poller: Poller) {
 
   ipcMain.handle('settings:save', async (_e, newSettings) => {
     saveSettings(newSettings)
-    poller.setBlitzPath(newSettings.blitzPath)
-    poller.setBlitzEnabled(newSettings.blitzEnabled)
-    poller.setPorofessorPath(newSettings.porofessorPath)
-    poller.setPorofessorEnabled(newSettings.porofessorEnabled)
+    const [primaryHelper, secondaryHelper] = newSettings.helpers
+
+    poller.setBlitzPath(primaryHelper?.path ?? '')
+    poller.setBlitzEnabled(primaryHelper?.enabled ?? false)
+    poller.setBlitzGameBindings(primaryHelper?.gameBindings ?? { league: true, valorant: true })
+    poller.setPorofessorPath(secondaryHelper?.path ?? '')
+    poller.setPorofessorEnabled(secondaryHelper?.enabled ?? false)
+    poller.setPorofessorGameBindings(
+      secondaryHelper?.gameBindings ?? { league: true, valorant: false }
+    )
     poller.setLeagueEnabled(newSettings.leagueEnabled)
     poller.setValorantEnabled(newSettings.valorantEnabled)
     if (newSettings.monitoringEnabled !== currentState.monitoringEnabled) {
@@ -48,7 +54,7 @@ export function registerIpcHandlers(poller: Poller) {
   ipcMain.handle('settings:browse', async () => {
     const result = await dialog.showOpenDialog({
       filters: [{ name: 'Executables & Shortcuts', extensions: ['exe', 'lnk'] }],
-      properties: ['openFile'],
+      properties: ['openFile']
     })
     return result.canceled ? null : result.filePaths[0]
   })

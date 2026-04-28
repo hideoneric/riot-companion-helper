@@ -1,10 +1,8 @@
-import type { AppState, LogEntry, Page, Settings } from '../App'
-import { IconButton, SectionLabel, StatusDot, ToggleSwitch } from '../components/CommandUi'
-import { getCompanionDisplayName, getCompanionInitial } from '../lib/companion-display'
-import { getEntityTone } from '../lib/command-center'
+import type { AppState, HelperConfig, LogEntry, Page, Settings } from '../App'
+import { getCompanionDisplayName } from '../lib/companion-display'
+import { bindingLabel, syncLegacyFields } from '../lib/helper-config'
 
 interface Props {
-  activePage: Page
   appState: AppState
   logs: LogEntry[]
   settings: Settings
@@ -12,425 +10,199 @@ interface Props {
   onNavigate: (page: Page) => void
 }
 
-const levelColor: Record<LogEntry['level'], string> = {
-  info: '#c8cedb',
-  warn: '#f2b84b',
-  error: '#ff4058'
+const levelClass: Record<LogEntry['level'], string> = {
+  info: 'info',
+  warn: 'setup',
+  error: 'error'
 }
 
-export function HomePage({
-  activePage,
-  appState,
-  logs,
-  settings,
-  onSaveSettings,
-  onNavigate
-}: Props) {
-  const companions = getCompanions(appState, settings)
-  const visibleCompanions = companions.filter((companion) => companion.visible)
-
-  if (activePage === 'activity') {
-    return (
-      <div className="redesign-page single-column">
-        <ActivityPanel logs={logs} full />
-      </div>
-    )
-  }
-
-  if (activePage === 'games') {
-    return (
-      <div className="redesign-page single-column">
-        <GameLauncher appState={appState} onNavigate={onNavigate} />
-        <GameSection appState={appState} settings={settings} onSaveSettings={onSaveSettings} />
-      </div>
-    )
-  }
-
-  if (activePage === 'companions') {
-    return (
-      <div className="redesign-page single-column">
-        <CompanionSection
-          companions={companions}
-          settings={settings}
-          onSaveSettings={onSaveSettings}
-          onNavigate={onNavigate}
-          showHidden
-        />
-      </div>
-    )
-  }
+export function HomePage({ appState, logs, settings, onSaveSettings, onNavigate }: Props) {
+  const helpers = settings.helpers.filter((helper) => helper.showOnOverview)
 
   return (
-    <div className="redesign-page dashboard-grid">
-      <section className="dashboard-left">
-        <GameLauncher appState={appState} onNavigate={onNavigate} />
-        <GameSection appState={appState} settings={settings} onSaveSettings={onSaveSettings} />
-        <CompanionSection
-          companions={visibleCompanions}
-          settings={settings}
-          onSaveSettings={onSaveSettings}
-          onNavigate={onNavigate}
-        />
-      </section>
-
-      <aside className="dashboard-right">
-        <SettingsCallout onNavigate={onNavigate} />
-        <ActivityPanel logs={logs} onViewAll={() => onNavigate('activity')} />
-      </aside>
-    </div>
-  )
-}
-
-function GameLauncher({
-  appState,
-  onNavigate
-}: {
-  appState: AppState
-  onNavigate: (page: Page) => void
-}) {
-  return (
-    <section className="dashboard-panel launcher-panel">
-      <div className="section-heading">
-        <SectionLabel>Game launcher</SectionLabel>
-        <StatusPill tone={appState.leagueRunning ? 'running' : 'idle'}>
-          {appState.leagueRunning ? 'League detected' : 'Waiting for games'}
-        </StatusPill>
-      </div>
-      <div className="launcher-grid">
-        <LauncherCard
-          name="League of Legends"
-          detail={
-            appState.leagueRunning
-              ? 'Running now · helper automation active'
-              : 'Ready for process detection'
-          }
-          action={appState.leagueRunning ? 'Running' : 'Configure'}
-          muted={appState.leagueRunning}
-          onClick={() => onNavigate(appState.leagueRunning ? 'activity' : 'settings')}
-        />
-        <LauncherCard
-          name="Valorant"
-          detail={
-            appState.valorantRunning
-              ? 'Running now · helper automation active'
-              : 'Ready for detection'
-          }
-          action={appState.valorantRunning ? 'Running' : 'Configure'}
-          muted={appState.valorantRunning}
-          onClick={() => onNavigate(appState.valorantRunning ? 'activity' : 'settings')}
-        />
-      </div>
-    </section>
-  )
-}
-
-function LauncherCard({
-  name,
-  detail,
-  action,
-  muted,
-  onClick
-}: {
-  name: string
-  detail: string
-  action: string
-  muted: boolean
-  onClick: () => void
-}) {
-  return (
-    <div className="launcher-card">
-      <div>
-        <h2>{name}</h2>
-        <p>{detail}</p>
-      </div>
-      <button className={`launcher-action ${muted ? 'muted' : ''}`.trim()} onClick={onClick}>
-        {action}
-      </button>
-    </div>
-  )
-}
-
-function GameSection({
-  appState,
-  settings,
-  onSaveSettings
-}: {
-  appState: AppState
-  settings: Settings
-  onSaveSettings: (s: Settings) => Promise<void>
-}) {
-  return (
-    <section className="dashboard-section">
-      <div className="section-heading">
-        <SectionLabel>Games</SectionLabel>
-        <StatusPill>
-          {enabledCount(appState.leagueEnabled, appState.valorantEnabled)} enabled
-        </StatusPill>
-      </div>
-      <div className="tile-grid">
-        <GameCard
+    <div className="page overview-page">
+      <SectionHeader title="Games" note="Controls decide which games can trigger helpers" />
+      <div className="game-grid">
+        <GameRow
+          icon="LoL"
           name="League of Legends"
           running={appState.leagueRunning}
-          enabled={appState.leagueEnabled}
-          onToggle={() => onSaveSettings({ ...settings, leagueEnabled: !appState.leagueEnabled })}
+          enabled={settings.leagueEnabled}
+          onToggle={() => onSaveSettings({ ...settings, leagueEnabled: !settings.leagueEnabled })}
         />
-        <GameCard
+        <GameRow
+          icon="VAL"
           name="Valorant"
           running={appState.valorantRunning}
-          enabled={appState.valorantEnabled}
+          enabled={settings.valorantEnabled}
           onToggle={() =>
-            onSaveSettings({ ...settings, valorantEnabled: !appState.valorantEnabled })
+            onSaveSettings({ ...settings, valorantEnabled: !settings.valorantEnabled })
           }
         />
       </div>
-    </section>
+
+      <SectionHeader title="Helpers" note="Configure what launches when a bound game is detected" />
+      <div className="row-list">
+        {helpers.map((helper, index) => {
+          const running =
+            helper.id === 'helper-1' ? appState.blitzRunning : appState.porofessorRunning
+
+          return (
+            <HelperRow
+              key={helper.id}
+              helper={helper}
+              slotNumber={index + 1}
+              running={running}
+              onConfigure={() => onNavigate('settings')}
+              onToggle={() => toggleHelper(settings, helper.id, onSaveSettings)}
+            />
+          )
+        })}
+      </div>
+
+      <SectionHeader title="Recent activity" />
+      <ActivityList logs={logs.slice(0, 8)} />
+    </div>
   )
 }
 
-function GameCard({
+export function SectionHeader({ title, note }: { title: string; note?: string }) {
+  return (
+    <div className="section-header">
+      <h2>{title}</h2>
+      {note && <p>{note}</p>}
+    </div>
+  )
+}
+
+function GameRow({
+  icon,
   name,
   running,
   enabled,
   onToggle
 }: {
+  icon: string
   name: string
   running: boolean
   enabled: boolean
   onToggle: () => void
 }) {
-  const state = getEntityTone({ enabled, running })
-
   return (
-    <article className="status-tile">
-      <div className="tile-heading">
-        <div className="tile-title">
-          <div className="tile-icon">{getCompanionInitial(name)}</div>
-          <div>
-            <h2>{name}</h2>
-            <p>Game process</p>
-          </div>
-        </div>
-        <ToggleSwitch on={enabled} onToggle={onToggle} />
+    <article className={`utility-row game-row ${running ? 'running' : ''}`.trim()}>
+      <div className="row-icon game-icon">{icon}</div>
+      <div className="row-main">
+        <h3>{name}</h3>
+        <p className={running ? 'state-running' : ''}>{running ? 'Running' : 'Idle'}</p>
       </div>
-      <p>Detection trigger for enabled companion apps.</p>
-      <div className="tile-footer">
-        <StatusPill tone={state.tone}>
-          <StatusDot tone={state.tone} pulse={state.tone === 'running'} />
-          {state.label}
-        </StatusPill>
-        <IconButton title={`${name} options`} onClick={() => undefined}>
-          ⋯
-        </IconButton>
+      <div className="row-actions compact-actions">
+        <Toggle checked={enabled} onToggle={onToggle} />
       </div>
     </article>
   )
 }
 
-function CompanionSection({
-  companions,
-  settings,
-  onSaveSettings,
-  onNavigate,
-  showHidden = false
+function HelperRow({
+  helper,
+  slotNumber,
+  running,
+  onConfigure,
+  onToggle
 }: {
-  companions: CompanionView[]
-  settings: Settings
-  onSaveSettings: (s: Settings) => Promise<void>
-  onNavigate: (page: Page) => void
-  showHidden?: boolean
+  helper: HelperConfig
+  slotNumber: number
+  running: boolean
+  onConfigure: () => void
+  onToggle: () => void
+}) {
+  const configured = !!helper.path
+  const name = configured
+    ? getCompanionDisplayName(
+        helper.path,
+        helper.displayName,
+        helper.detectedName || `Helper slot ${slotNumber}`
+      )
+    : `Helper slot ${slotNumber}`
+  const needsSetup = !configured
+  const rowClass = `utility-row helper-row ${running ? 'running' : ''} ${needsSetup ? 'setup' : ''}`
+
+  return (
+    <article className={rowClass.trim()}>
+      <div className="row-icon">{configured ? 'APP' : slotNumber}</div>
+      <div className="row-main">
+        <h3>{name}</h3>
+        {configured ? (
+          <div className="meta-chips">
+            <span>{bindingLabel(helper)}</span>
+            <span className={running ? 'state-running' : ''}>{running ? 'Running' : 'Idle'}</span>
+            <em title={helper.path}>{shortPath(helper.path)}</em>
+          </div>
+        ) : (
+          <p className="state-setup">Needs path</p>
+        )}
+      </div>
+      <div className="row-actions">
+        <button className="button compact" onClick={onConfigure}>
+          {configured ? 'Configure' : 'Set path'}
+        </button>
+        <Toggle checked={configured && helper.enabled} disabled={!configured} onToggle={onToggle} />
+      </div>
+    </article>
+  )
+}
+
+export function Toggle({
+  checked,
+  disabled = false,
+  onToggle
+}: {
+  checked: boolean
+  disabled?: boolean
+  onToggle: () => void
 }) {
   return (
-    <section className="dashboard-section">
-      <div className="section-heading">
-        <SectionLabel>Companions</SectionLabel>
-        <StatusPill>
-          {companions.length} {showHidden ? 'configured' : 'visible'}
-        </StatusPill>
-      </div>
-      {companions.length === 0 ? (
-        <div className="dashboard-panel empty-panel">
-          <h2>No visible companions</h2>
-          <p>Restore hidden helpers or configure paths in Settings.</p>
-          <button className="launcher-action" onClick={() => onNavigate('settings')}>
-            Open Settings
-          </button>
-        </div>
+    <button
+      className={`toggle ${checked ? 'checked' : ''}`.trim()}
+      disabled={disabled}
+      onClick={onToggle}
+      aria-pressed={checked}
+    >
+      <span>{checked ? 'On' : 'Off'}</span>
+      <i />
+    </button>
+  )
+}
+
+function ActivityList({ logs }: { logs: LogEntry[] }) {
+  return (
+    <section className="activity-list">
+      {logs.length === 0 ? (
+        <div className="activity-empty">No activity yet</div>
       ) : (
-        <div className="companion-list">
-          {companions.map((companion) => (
-            <CompanionCard
-              key={companion.id}
-              companion={companion}
-              settings={settings}
-              onSaveSettings={onSaveSettings}
-            />
-          ))}
-        </div>
+        logs.map((entry) => (
+          <div key={`${entry.timestamp}-${entry.message}`} className="activity-row">
+            <time>{entry.timestamp}</time>
+            <span className={levelClass[entry.level]}>{entry.message}</span>
+          </div>
+        ))
       )}
     </section>
   )
 }
 
-function CompanionCard({
-  companion,
-  settings,
-  onSaveSettings
-}: {
-  companion: CompanionView
-  settings: Settings
+function toggleHelper(
+  settings: Settings,
+  helperId: string,
   onSaveSettings: (s: Settings) => Promise<void>
-}) {
-  const state = getEntityTone({ enabled: companion.enabled, running: companion.running })
-  const detail = companion.manualName
-    ? 'Custom display name'
-    : companion.pathSet
-      ? `Detected from ${companion.pathKind}`
-      : 'Path missing'
-
-  return (
-    <article className={`status-tile companion-tile ${!companion.visible ? 'hidden' : ''}`.trim()}>
-      <div className="tile-heading">
-        <div className="tile-title">
-          <div className="tile-icon">{getCompanionInitial(companion.name)}</div>
-          <div>
-            <h2>{companion.name}</h2>
-            <p>{detail}</p>
-          </div>
-        </div>
-        <ToggleSwitch
-          on={companion.enabled}
-          onToggle={() =>
-            onSaveSettings({ ...settings, [companion.enabledKey]: !companion.enabled })
-          }
-        />
-      </div>
-      <p>
-        {companion.manualName
-          ? 'Name was set manually because the detected name was unavailable or not preferred.'
-          : 'Auto-detected display name. You can override the name in Settings.'}
-      </p>
-      <div className="tile-footer">
-        <StatusPill tone={!companion.pathSet ? 'setup' : state.tone}>
-          <StatusDot
-            tone={!companion.pathSet ? 'setup' : state.tone}
-            pulse={state.tone === 'running'}
-          />
-          {!companion.pathSet ? 'Path missing' : state.label}
-        </StatusPill>
-        <IconButton title={`Configure ${companion.name}`} onClick={() => undefined}>
-          ⚙
-        </IconButton>
-      </div>
-    </article>
+) {
+  const helpers = settings.helpers.map((helper) =>
+    helper.id === helperId ? { ...helper, enabled: !helper.enabled } : helper
   )
+  return onSaveSettings(syncLegacyFields({ ...settings, helpers }))
 }
 
-function SettingsCallout({ onNavigate }: { onNavigate: (page: Page) => void }) {
-  return (
-    <section className="settings-callout">
-      <div>
-        <h2>Quick controls moved to Settings</h2>
-        <p>Dashboard keeps status, launch actions, companions, and activity.</p>
-      </div>
-      <button className="launcher-action muted" onClick={() => onNavigate('settings')}>
-        Open Settings
-      </button>
-    </section>
-  )
-}
-
-function ActivityPanel({
-  logs,
-  full = false,
-  onViewAll
-}: {
-  logs: LogEntry[]
-  full?: boolean
-  onViewAll?: () => void
-}) {
-  const visibleLogs = full ? logs : logs.slice(0, 9)
-
-  return (
-    <section className={`dashboard-panel activity-panel ${full ? 'full' : ''}`.trim()}>
-      <div className="section-heading">
-        <SectionLabel>Activity</SectionLabel>
-        {onViewAll && (
-          <button className="pill-button" onClick={onViewAll}>
-            View all
-          </button>
-        )}
-      </div>
-      <div className="activity-list">
-        {visibleLogs.length === 0 ? (
-          <div className="activity-empty">No activity yet</div>
-        ) : (
-          visibleLogs.map((entry) => (
-            <div key={`${entry.timestamp}-${entry.message}`} className="activity-row">
-              <time>{entry.timestamp}</time>
-              <span style={{ color: levelColor[entry.level] }}>{entry.message}</span>
-            </div>
-          ))
-        )}
-      </div>
-    </section>
-  )
-}
-
-function StatusPill({
-  tone = 'idle',
-  children
-}: {
-  tone?: 'active' | 'setup' | 'paused' | 'running' | 'idle' | 'disabled'
-  children: React.ReactNode
-}) {
-  return <span className={`status-pill ${tone}`.trim()}>{children}</span>
-}
-
-interface CompanionView {
-  id: 'blitz' | 'porofessor'
-  name: string
-  manualName: string
-  pathKind: string
-  pathSet: boolean
-  running: boolean
-  enabled: boolean
-  visible: boolean
-  enabledKey: 'blitzEnabled' | 'porofessorEnabled'
-}
-
-function getCompanions(appState: AppState, settings: Settings): CompanionView[] {
-  return [
-    {
-      id: 'blitz',
-      name: getCompanionDisplayName(settings.blitzPath, settings.blitzName, 'Blitz.gg'),
-      manualName: settings.blitzName,
-      pathKind: getPathKind(settings.blitzPath),
-      pathSet: appState.blitzPathSet,
-      running: appState.blitzRunning,
-      enabled: appState.blitzEnabled,
-      visible: settings.blitzVisible,
-      enabledKey: 'blitzEnabled'
-    },
-    {
-      id: 'porofessor',
-      name: getCompanionDisplayName(settings.porofessorPath, settings.porofessorName, 'Porofessor'),
-      manualName: settings.porofessorName,
-      pathKind: getPathKind(settings.porofessorPath),
-      pathSet: appState.porofessorPathSet,
-      running: appState.porofessorRunning,
-      enabled: appState.porofessorEnabled,
-      visible: settings.porofessorVisible,
-      enabledKey: 'porofessorEnabled'
-    }
-  ]
-}
-
-function getPathKind(filePath: string): string {
-  return filePath.toLowerCase().endsWith('.lnk')
-    ? 'shortcut'
-    : filePath.split(/[\\/]/).pop() || 'path'
-}
-
-function enabledCount(...items: boolean[]): number {
-  return items.filter(Boolean).length
+function shortPath(filePath: string): string {
+  const parts = filePath.split(/[\\/]/).filter(Boolean)
+  if (parts.length <= 2) return filePath
+  return `${parts[0]}\\...\\${parts[parts.length - 1]}`
 }
