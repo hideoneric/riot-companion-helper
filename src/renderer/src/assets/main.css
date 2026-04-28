@@ -220,7 +220,7 @@
 .utility-row {
   min-height: 74px;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 172px;
+  grid-template-columns: 34px minmax(0, 1fr) 188px;
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -284,7 +284,7 @@
 
 .row-actions {
   display: grid;
-  grid-template-columns: 82px 72px;
+  grid-template-columns: 98px 72px;
   justify-content: end;
   align-items: center;
   gap: 10px;
@@ -302,12 +302,15 @@
   background: transparent;
   color: var(--active);
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .button.compact {
   height: 26px;
   padding: 0 9px;
+  min-width: 82px;
 }
 
 .button:hover:not(:disabled) {
