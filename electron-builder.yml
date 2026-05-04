@@ -4,10 +4,11 @@ directories:
   buildResources: resources
 files:
   - '!**/.vscode/*'
+  - '!{.agents,.claude,.claude-flow,.claude-flow_backup,.claude_backup,.codex,.superpowers,.swarm,.worktrees}{,/**/*}'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md,AGENTS.md,CLAUDE.md,CLAUDE.md.backup}'
+  - '!{.env,.env.*,.mcp.json,.npmrc,pnpm-lock.yaml,ruvector.db}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 extraResources:
   - from: resources/icon.ico
