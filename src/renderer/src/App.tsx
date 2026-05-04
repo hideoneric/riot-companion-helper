@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { HomePage } from './pages/HomePage'
-import { SettingsPage } from './pages/SettingsPage'
 
 declare const window: Window & {
   api: {
@@ -119,7 +118,6 @@ const DEFAULT_SETTINGS: Settings = {
 }
 
 export default function App() {
-  const [activePage, setActivePage] = useState<Page>('overview')
   const [appState, setAppState] = useState<AppState>({
     leagueRunning: false,
     blitzRunning: false,
@@ -149,7 +147,11 @@ export default function App() {
         setLogs((prev) => [entry, ...prev].slice(0, 8))
       )
       const unsubNavigate = window.api.onNavigate((page) => {
-        if (page === 'settings') setActivePage('settings')
+        if (page === 'settings') {
+          requestAnimationFrame(() =>
+            document.getElementById('settings-panel')?.scrollIntoView({ block: 'start' })
+          )
+        }
       })
       const unsubUpdate = window.api.onUpdateStatus(setUpdateStatus)
 
@@ -187,23 +189,14 @@ export default function App() {
       )}
 
       <main className="app-main">
-        <TopTabs activePage={activePage} onNavigate={setActivePage} />
-        {activePage === 'overview' ? (
-          <HomePage
-            appState={appState}
-            logs={logs}
-            settings={settings}
-            onSaveSettings={handleSaveSettings}
-            onNavigate={setActivePage}
-          />
-        ) : (
-          <SettingsPage
-            settings={settings}
-            updateStatus={updateStatus}
-            onSave={handleSaveSettings}
-            onCheckForUpdates={() => window.api.checkForUpdates()}
-          />
-        )}
+        <HomePage
+          appState={appState}
+          logs={logs}
+          settings={settings}
+          updateStatus={updateStatus}
+          onSaveSettings={handleSaveSettings}
+          onCheckForUpdates={() => window.api.checkForUpdates()}
+        />
       </main>
     </div>
   )
@@ -242,31 +235,6 @@ function Titlebar({
         </TitleButton>
       </div>
     </header>
-  )
-}
-
-function TopTabs({
-  activePage,
-  onNavigate
-}: {
-  activePage: Page
-  onNavigate: (page: Page) => void
-}) {
-  return (
-    <nav className="top-tabs">
-      <button
-        className={`top-tab ${activePage === 'overview' ? 'active' : ''}`.trim()}
-        onClick={() => onNavigate('overview')}
-      >
-        Overview
-      </button>
-      <button
-        className={`top-tab ${activePage === 'settings' ? 'active' : ''}`.trim()}
-        onClick={() => onNavigate('settings')}
-      >
-        Settings
-      </button>
-    </nav>
   )
 }
 

@@ -25,6 +25,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@fontsource-variable/material-symbols-rounded": "^5.2.43",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.3"
   },
