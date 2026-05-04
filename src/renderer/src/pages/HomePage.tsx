@@ -204,10 +204,14 @@ export function HomePage({
                   <button
                     className="button tonal"
                     onClick={onCheckForUpdates}
-                    disabled={updateStatus?.status === 'checking'}
+                    disabled={
+                      updateStatus?.status === 'checking' ||
+                      updateStatus?.status === 'downloading' ||
+                      updateStatus?.status === 'ready'
+                    }
                   >
                     <Icon name="sync" />
-                    {updateStatus?.status === 'checking' ? 'Checking' : 'Check'}
+                    {updateButtonText(updateStatus)}
                   </button>
                 }
               />
@@ -630,9 +634,16 @@ function updateStatusText(status: UpdateStatus | null): string {
   if (status.status === 'checking') return 'Checking GitHub releases.'
   if (status.status === 'available') return `Update v${status.version} is available.`
   if (status.status === 'downloading') return `Downloading v${status.version}: ${status.progress}%.`
-  if (status.status === 'ready') return `Update v${status.version} is ready to install.`
+  if (status.status === 'ready') return `Update v${status.version} is ready. The app will restart.`
   if (status.status === 'error') return status.message
   return 'No update available.'
+}
+
+function updateButtonText(status: UpdateStatus | null): string {
+  if (status?.status === 'checking') return 'Checking'
+  if (status?.status === 'downloading') return 'Downloading'
+  if (status?.status === 'ready') return 'Restarting'
+  return 'Check'
 }
 
 function shortPath(filePath: string): string {
