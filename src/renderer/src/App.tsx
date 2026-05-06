@@ -135,6 +135,7 @@ export default function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  const [inspectorSignal, setInspectorSignal] = useState(0)
 
   useEffect(() => {
     if (!window.api) return undefined
@@ -148,9 +149,7 @@ export default function App() {
       )
       const unsubNavigate = window.api.onNavigate((page) => {
         if (page === 'settings') {
-          requestAnimationFrame(() =>
-            document.getElementById('settings-panel')?.scrollIntoView({ block: 'start' })
-          )
+          setInspectorSignal((value) => value + 1)
         }
       })
       const unsubUpdate = window.api.onUpdateStatus(setUpdateStatus)
@@ -176,6 +175,7 @@ export default function App() {
     <div className="app-shell">
       <Titlebar
         appState={appState}
+        onSettings={() => setInspectorSignal((value) => value + 1)}
         onMinimize={() => window.api.minimize()}
         onClose={() => window.api.hideToTray()}
       />
@@ -194,8 +194,10 @@ export default function App() {
           logs={logs}
           settings={settings}
           updateStatus={updateStatus}
+          inspectorSignal={inspectorSignal}
           onSaveSettings={handleSaveSettings}
           onCheckForUpdates={() => window.api.checkForUpdates()}
+          onInstallUpdate={() => window.api.installUpdate()}
         />
       </main>
     </div>
@@ -204,10 +206,12 @@ export default function App() {
 
 function Titlebar({
   appState,
+  onSettings,
   onMinimize,
   onClose
 }: {
   appState: AppState
+  onSettings: () => void
   onMinimize: () => void
   onClose: () => void
 }) {
@@ -227,6 +231,11 @@ function Titlebar({
         <div className={`titlebar-status ${statusClass}`}>{label}</div>
       </div>
       <div className="titlebar-actions">
+        <TitleButton title="Settings" onClick={onSettings}>
+          <span className="material-symbols-rounded titlebar-icon" aria-hidden="true">
+            settings
+          </span>
+        </TitleButton>
         <TitleButton title="Minimize" onClick={onMinimize}>
           -
         </TitleButton>

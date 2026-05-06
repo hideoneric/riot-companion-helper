@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { getEntityTone, getReadiness } from '../src/renderer/src/lib/command-center'
+import {
+  getCommandSummary,
+  getEntityTone,
+  getReadiness
+} from '../src/renderer/src/lib/command-center'
 
 describe('command center status helpers', () => {
   test('requires setup when no companion path is configured', () => {
@@ -41,6 +45,22 @@ describe('command center status helpers', () => {
     expect(getEntityTone({ enabled: true, running: false })).toEqual({
       label: 'Idle',
       tone: 'idle'
+    })
+  })
+
+  test('summarizes compact command surface counts', () => {
+    expect(
+      getCommandSummary({
+        leagueRunning: true,
+        valorantRunning: false,
+        configuredHelpers: 2,
+        runningHelpers: 1
+      })
+    ).toEqual({
+      activeGames: 1,
+      configuredHelpers: 2,
+      runningHelpers: 1,
+      helperLabel: '1 of 2 running'
     })
   })
 })

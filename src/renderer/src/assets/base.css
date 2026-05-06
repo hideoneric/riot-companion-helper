@@ -1,11 +1,11 @@
 :root {
   --active: #d9e6ff;
   font-family:
-    Inter,
+    'Google Sans',
+    Roboto,
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
-    Roboto,
     Oxygen,
     Ubuntu,
     Cantarell,

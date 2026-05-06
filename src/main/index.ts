@@ -23,13 +23,13 @@ const logEntries: unknown[] = []
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 860,
-    height: 580,
-    minWidth: 760,
-    minHeight: 520,
+    height: 560,
+    minWidth: 840,
+    minHeight: 540,
     resizable: true,
     show: false,
     frame: false,
-    backgroundColor: '#111114',
+    backgroundColor: '#0f1011',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
