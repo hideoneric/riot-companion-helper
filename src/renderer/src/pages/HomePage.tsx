@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react'
-import type { AppState, HelperConfig, LogEntry, Settings, UpdateStatus } from '../App'
+import { useMemo } from 'react'
+import type { AppState, HelperConfig, LogEntry, Settings } from '../App'
 import leagueLogo from '../assets/league-logo.svg'
 import valorantLogo from '../assets/valorant-logo.svg'
-import { ControlInspector } from '../components/ControlInspector'
 import { Icon, SectionHeader, StatusPill, Toggle } from '../components/MaterialControls'
 import { getCompanionDisplayName } from '../lib/companion-display'
 import { getCommandSummary, getEntityTone, getReadiness } from '../lib/command-center'
@@ -13,11 +12,7 @@ interface Props {
   appState: AppState
   logs: LogEntry[]
   settings: Settings
-  updateStatus: UpdateStatus | null
-  inspectorSignal: number
   onSaveSettings: (s: Settings) => Promise<void>
-  onCheckForUpdates: () => Promise<void>
-  onInstallUpdate: () => void
 }
 
 const levelClass: Record<LogEntry['level'], string> = {
@@ -26,17 +21,7 @@ const levelClass: Record<LogEntry['level'], string> = {
   error: 'error'
 }
 
-export function HomePage({
-  appState,
-  logs,
-  settings,
-  updateStatus,
-  inspectorSignal,
-  onSaveSettings,
-  onCheckForUpdates,
-  onInstallUpdate
-}: Props) {
-  const inspectorRef = useRef<HTMLElement>(null)
+export function HomePage({ appState, logs, settings, onSaveSettings }: Props) {
   const helpers = settings.helpers
   const visibleLogs = useMemo(() => logs.slice(0, 4), [logs])
   const hasHelper = helpers.some((helper) => helper.path)
@@ -53,13 +38,8 @@ export function HomePage({
     runningHelpers
   })
 
-  useEffect(() => {
-    if (!inspectorSignal) return
-    inspectorRef.current?.focus()
-  }, [inspectorSignal])
-
   return (
-    <div className="page command-page">
+    <div className="page overview-page">
       <section className="command-workspace" aria-label="Command center">
         <div className={`command-card tone-${readiness.tone}`}>
           <div className="command-status">
@@ -112,16 +92,6 @@ export function HomePage({
           <ActivityList logs={visibleLogs} />
         </section>
       </section>
-
-      <ControlInspector
-        helpers={helpers}
-        settings={settings}
-        updateStatus={updateStatus}
-        inspectorRef={inspectorRef}
-        onSaveSettings={onSaveSettings}
-        onCheckForUpdates={onCheckForUpdates}
-        onInstallUpdate={onInstallUpdate}
-      />
     </div>
   )
 }

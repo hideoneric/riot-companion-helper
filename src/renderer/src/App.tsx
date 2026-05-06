@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { HomePage } from './pages/HomePage'
+import { SettingsPage } from './pages/SettingsPage'
 
 declare const window: Window & {
   api: {
@@ -135,7 +136,7 @@ export default function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
-  const [inspectorSignal, setInspectorSignal] = useState(0)
+  const [activePage, setActivePage] = useState<Page>('overview')
 
   useEffect(() => {
     if (!window.api) return undefined
@@ -149,7 +150,7 @@ export default function App() {
       )
       const unsubNavigate = window.api.onNavigate((page) => {
         if (page === 'settings') {
-          setInspectorSignal((value) => value + 1)
+          setActivePage('settings')
         }
       })
       const unsubUpdate = window.api.onUpdateStatus(setUpdateStatus)
@@ -175,7 +176,8 @@ export default function App() {
     <div className="app-shell">
       <Titlebar
         appState={appState}
-        onSettings={() => setInspectorSignal((value) => value + 1)}
+        activePage={activePage}
+        onSettings={() => setActivePage((page) => (page === 'settings' ? 'overview' : 'settings'))}
         onMinimize={() => window.api.minimize()}
         onClose={() => window.api.hideToTray()}
       />
@@ -189,16 +191,22 @@ export default function App() {
       )}
 
       <main className="app-main">
-        <HomePage
-          appState={appState}
-          logs={logs}
-          settings={settings}
-          updateStatus={updateStatus}
-          inspectorSignal={inspectorSignal}
-          onSaveSettings={handleSaveSettings}
-          onCheckForUpdates={() => window.api.checkForUpdates()}
-          onInstallUpdate={() => window.api.installUpdate()}
-        />
+        {activePage === 'settings' ? (
+          <SettingsPage
+            settings={settings}
+            updateStatus={updateStatus}
+            onSaveSettings={handleSaveSettings}
+            onCheckForUpdates={() => window.api.checkForUpdates()}
+            onInstallUpdate={() => window.api.installUpdate()}
+          />
+        ) : (
+          <HomePage
+            appState={appState}
+            logs={logs}
+            settings={settings}
+            onSaveSettings={handleSaveSettings}
+          />
+        )}
       </main>
     </div>
   )
@@ -206,11 +214,13 @@ export default function App() {
 
 function Titlebar({
   appState,
+  activePage,
   onSettings,
   onMinimize,
   onClose
 }: {
   appState: AppState
+  activePage: Page
   onSettings: () => void
   onMinimize: () => void
   onClose: () => void
@@ -231,8 +241,11 @@ function Titlebar({
         <div className={`titlebar-status ${statusClass}`}>{label}</div>
       </div>
       <div className="titlebar-actions">
-        <TitleButton title="Settings" onClick={onSettings}>
-          <span className="material-symbols-rounded titlebar-icon" aria-hidden="true">
+        <TitleButton
+          title={activePage === 'settings' ? 'Command center' : 'Settings'}
+          onClick={onSettings}
+        >
+          <span className="material-symbols-rounded icon titlebar-icon" aria-hidden="true">
             settings
           </span>
         </TitleButton>

@@ -148,9 +148,20 @@
   padding: 10px;
 }
 
-.command-page {
+.command-page,
+.overview-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 10px;
+}
+
+.overview-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.settings-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -179,6 +190,15 @@
   overflow: hidden;
   padding: 10px;
   outline: none;
+}
+
+.settings-page .control-inspector {
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+}
+
+.settings-page .inspector-header {
+  grid-column: 1 / -1;
 }
 
 .control-inspector:focus {
@@ -735,5 +755,9 @@ label {
 
   .command-page {
     grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  .settings-page .control-inspector {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.75fr);
   }
 }
