@@ -57,6 +57,7 @@ export interface Settings {
   blitzPath: string
   blitzName: string
   launchWithWindows: boolean
+  startMinimized: boolean
   pollingInterval: number
   monitoringEnabled: boolean
   leagueEnabled: boolean
@@ -85,6 +86,7 @@ const DEFAULT_SETTINGS: Settings = {
   blitzPath: '',
   blitzName: '',
   launchWithWindows: false,
+  startMinimized: false,
   pollingInterval: 3,
   monitoringEnabled: true,
   leagueEnabled: true,

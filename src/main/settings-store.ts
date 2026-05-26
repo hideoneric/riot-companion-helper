@@ -17,6 +17,7 @@ export interface AppSettings {
   blitzPath: string
   blitzName: string
   launchWithWindows: boolean
+  startMinimized: boolean
   pollingInterval: number // seconds, 1-10
   monitoringEnabled: boolean
   leagueEnabled: boolean
@@ -56,6 +57,7 @@ const DEFAULTS: AppSettings = {
   blitzPath: '',
   blitzName: '',
   launchWithWindows: false,
+  startMinimized: false,
   pollingInterval: 3,
   monitoringEnabled: true,
   leagueEnabled: true,
@@ -85,6 +87,7 @@ export function getSettings(): AppSettings {
     blitzPath: primaryHelper?.path ?? '',
     blitzName: primaryHelper?.displayName ?? '',
     launchWithWindows: store.get('launchWithWindows', DEFAULTS.launchWithWindows),
+    startMinimized: store.get('startMinimized', DEFAULTS.startMinimized),
     pollingInterval: store.get('pollingInterval', DEFAULTS.pollingInterval),
     monitoringEnabled: store.get('monitoringEnabled', DEFAULTS.monitoringEnabled),
     leagueEnabled: store.get('leagueEnabled', DEFAULTS.leagueEnabled),
@@ -108,6 +111,7 @@ export function saveSettings(s: AppSettings): void {
   store.set('blitzPath', primaryHelper?.path ?? '')
   store.set('blitzName', primaryHelper?.displayName ?? '')
   store.set('launchWithWindows', s.launchWithWindows)
+  store.set('startMinimized', s.startMinimized)
   store.set('pollingInterval', s.pollingInterval)
   store.set('monitoringEnabled', s.monitoringEnabled)
   store.set('leagueEnabled', s.leagueEnabled)

@@ -8,6 +8,7 @@ import { Poller } from './poller'
 import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
 import { checkForUpdates, initUpdater, installUpdate } from './updater'
+import { presentWindowOnReady } from './window-startup'
 
 app.setName('Riot Companion Helper')
 let isQuitting = false
@@ -20,7 +21,7 @@ const launcher = new BlitzLauncher()
 const porofessorLauncher = new BlitzLauncher()
 const logEntries: unknown[] = []
 
-function createMainWindow(): BrowserWindow {
+function createMainWindow(startMinimized: boolean): BrowserWindow {
   const win = new BrowserWindow({
     width: 860,
     height: 560,
@@ -38,7 +39,7 @@ function createMainWindow(): BrowserWindow {
   })
 
   win.on('ready-to-show', () => {
-    win.show()
+    presentWindowOnReady(win, startMinimized)
     if (!is.dev) initUpdater(win)
   })
 
@@ -138,7 +139,7 @@ app.whenReady().then(() => {
   }
 
   // Create window after IPC is ready
-  mainWindow = createMainWindow()
+  mainWindow = createMainWindow(settings.startMinimized)
 
   let tray: import('electron').Tray | null = null
 

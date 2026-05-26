@@ -105,6 +105,23 @@ export function ControlInspector({
             }
           />
           <SettingRow
+            icon="minimize"
+            title="Start minimized"
+            detail="Open minimized on app start"
+            control={
+              <Toggle
+                checked={settings.startMinimized}
+                label="Start minimized"
+                onToggle={() =>
+                  onSaveSettings({
+                    ...settings,
+                    startMinimized: !settings.startMinimized
+                  })
+                }
+              />
+            }
+          />
+          <SettingRow
             icon="system_update"
             title="Updates"
             detail={updateStatusText(updateStatus)}

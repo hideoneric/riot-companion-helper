@@ -24,6 +24,7 @@ describe('settings-store', () => {
     expect(s.blitzPath).toBe('')
     expect(s.blitzName).toBe('')
     expect(s.launchWithWindows).toBe(false)
+    expect(s.startMinimized).toBe(false)
     expect(s.pollingInterval).toBe(3)
     expect(s.monitoringEnabled).toBe(true)
     expect(s.helpers).toHaveLength(2)
@@ -36,6 +37,7 @@ describe('settings-store', () => {
       blitzPath: 'C:\\Blitz\\Blitz.exe',
       blitzName: 'Blitz',
       launchWithWindows: false,
+      startMinimized: true,
       pollingInterval: 3,
       monitoringEnabled: true,
       leagueEnabled: true,
@@ -70,6 +72,7 @@ describe('settings-store', () => {
     })
     expect(getSettings().blitzPath).toBe('C:\\Blitz\\Blitz.exe')
     expect(getSettings().blitzName).toBe('Blitz')
+    expect(getSettings().startMinimized).toBe(true)
     expect(getSettings().themeColor).toBe('#d9e6ff')
   })
 
@@ -78,6 +81,7 @@ describe('settings-store', () => {
       blitzPath: 'C:\\Legacy\\Helper.exe',
       blitzName: 'Legacy Helper',
       launchWithWindows: false,
+      startMinimized: false,
       pollingInterval: 3,
       monitoringEnabled: true,
       leagueEnabled: true,
