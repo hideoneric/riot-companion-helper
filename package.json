@@ -1,6 +1,6 @@
 {
   "name": "riot-companion-helper",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -14,6 +14,7 @@
     "icon": "node scripts/generate-icon.js",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
+    "launch": "scripts\\launch-app.cmd",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "package": "npm run build && electron-builder",
