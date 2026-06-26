@@ -5,3 +5,32 @@ out
 .eslintcache
 *.log*
 .worktrees
+
+# Local Codex configuration and scratch state
+.codex/
+
+# Legacy Claude Code / Claude Flow / agent tooling
+.agents/
+.claude/
+.claude_backup/
+.claude-flow/
+.claude-flow_backup/
+.mcp.json
+.swarm/
+AGENTS.md
+CLAUDE.md
+CLAUDE.md.backup
+ruvector.db
+
+# Local Superpowers scratch output
+.superpowers/
+docs/superpowers/
+
+# Local cleanup helper scripts
+scripts/review-legacy-tooling.cmd
+scripts/review-legacy-tooling.ps1
+
+# Environment variables
+.env
+.env.local
+.env.*.local
