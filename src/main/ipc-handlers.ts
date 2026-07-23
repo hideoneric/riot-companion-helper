@@ -77,8 +77,8 @@ export function registerIpcHandlers(poller: Poller, detector: ProcessDetector) {
     }
     try {
       setLaunchWithWindows(newSettings.launchWithWindows)
-    } catch {
-      // Registry access may fail if not running as admin; non-critical
+    } catch (error) {
+      console.error('Failed to update Windows startup registration:', error)
     }
   })
 

@@ -14,7 +14,7 @@ describe('presentWindowOnReady', () => {
     expect(win.minimize).not.toHaveBeenCalled()
   })
 
-  it('starts the main window minimized when configured', () => {
+  it('keeps the main window hidden for background startup', () => {
     const win = {
       show: vi.fn(),
       minimize: vi.fn()
@@ -22,7 +22,7 @@ describe('presentWindowOnReady', () => {
 
     presentWindowOnReady(win, true)
 
-    expect(win.show).toHaveBeenCalledOnce()
-    expect(win.minimize).toHaveBeenCalledOnce()
+    expect(win.show).not.toHaveBeenCalled()
+    expect(win.minimize).not.toHaveBeenCalled()
   })
 })

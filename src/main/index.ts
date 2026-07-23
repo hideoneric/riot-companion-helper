@@ -10,6 +10,7 @@ import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
 import { checkForUpdates, initUpdater, installUpdate } from './updater'
 import { presentWindowOnReady } from './window-startup'
 import { PowerShellProcessDetector } from './process-detector'
+import { setLaunchWithWindows } from './startup'
 
 app.setName('Riot Companion Helper')
 let isQuitting = false
@@ -72,6 +73,11 @@ app.whenReady().then(() => {
       saveSettings({ ...settings, blitzPath: detected })
       settings = getSettings()
     }
+  }
+  try {
+    setLaunchWithWindows(settings.launchWithWindows)
+  } catch (error) {
+    console.error('Failed to update Windows startup registration:', error)
   }
 
   const poller = new Poller({
