@@ -1,37 +1,50 @@
-import { describe, expect, it } from 'vitest'
-import { parseTasklistCsv } from '../src/main/process-detector'
+import { execFile } from 'child_process'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  parsePowerShellProcessNames,
+  PowerShellProcessDetector
+} from '../src/main/process-detector'
 
-describe('parseTasklistCsv', () => {
-  it('normalizes process image names from tasklist CSV output', () => {
-    const result = parseTasklistCsv(
-      [
-        '"LeagueClient.exe","1234","Console","1","120,000 K"',
-        '"VALORANT.exe","2345","Console","1","250,000 K"',
-        '"Blitz.exe","3456","Console","1","80,000 K"'
-      ].join('\r\n')
-    )
+vi.mock('child_process', () => ({ execFile: vi.fn() }))
 
-    expect(result.has('leagueclient.exe')).toBe(true)
-    expect(result.has('valorant.exe')).toBe(true)
-    expect(result.has('blitz.exe')).toBe(true)
+describe('PowerShellProcessDetector', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('normalizes newline-delimited process names', () => {
+    expect([
+      ...parsePowerShellProcessNames('LeagueClient.exe\r\nVALORANT.exe\r\nBlitz.exe\r\n')
+    ]).toEqual(['leagueclient.exe', 'valorant.exe', 'blitz.exe'])
   })
 
-  it('ignores empty, localized, and malformed rows', () => {
-    const result = parseTasklistCsv(
-      [
-        '',
-        'INFO: No tasks are running which match the specified criteria.',
-        '"Malformed row"',
-        '"RiotClientServices.exe","4567","Console","1","60,000 K"'
-      ].join('\n')
-    )
-
-    expect([...result]).toEqual(['riotclientservices.exe'])
+  it('adds exe suffix and removes empty duplicates', () => {
+    expect([...parsePowerShellProcessNames('Blitz\n\nblitz\nRiotClientServices.exe\n')]).toEqual([
+      'blitz.exe',
+      'riotclientservices.exe'
+    ])
   })
 
-  it('handles quoted executable names that contain commas', () => {
-    const result = parseTasklistCsv('"Odd,Name.exe","999","Console","1","10,000 K"')
+  it('runs hidden Windows PowerShell without a profile', async () => {
+    vi.mocked(execFile).mockImplementationOnce((file, args, options, callback) => {
+      expect(String(file).toLowerCase()).toMatch(/powershell\.exe$/)
+      expect(args).toEqual(
+        expect.arrayContaining(['-NoLogo', '-NoProfile', '-NonInteractive', '-Command'])
+      )
+      expect(options).toEqual(expect.objectContaining({ windowsHide: true, timeout: 5000 }))
+      callback?.(null, 'LeagueClient\n', '')
+      return undefined as never
+    })
 
-    expect(result.has('odd,name.exe')).toBe(true)
+    await expect(new PowerShellProcessDetector().snapshot()).resolves.toEqual(
+      new Set(['leagueclient.exe'])
+    )
+  })
+
+  it('preserves execution failures', async () => {
+    vi.mocked(execFile).mockImplementationOnce((_file, _args, _options, callback) => {
+      callback?.(new Error('PowerShell denied'), '', '')
+      return undefined as never
+    })
+
+    await expect(new PowerShellProcessDetector().snapshot()).rejects.toThrow('PowerShell denied')
   })
 })

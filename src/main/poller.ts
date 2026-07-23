@@ -1,6 +1,6 @@
 import * as path from 'path'
 import { BlitzLauncher } from './launcher'
-import { TasklistProcessDetector } from './process-detector'
+import { PowerShellProcessDetector } from './process-detector'
 import type { ProcessDetector } from './process-detector'
 
 export interface LogEntry {
@@ -77,7 +77,7 @@ export class Poller {
   }
 
   constructor(private opts: PollerOptions) {
-    this.processDetector = opts.processDetector ?? new TasklistProcessDetector()
+    this.processDetector = opts.processDetector ?? new PowerShellProcessDetector()
   }
 
   private log(message: string, level: LogEntry['level'] = 'info') {
@@ -143,13 +143,14 @@ export class Poller {
       leagueRunning = this.hasProcess(processes, 'LeagueClient.exe')
       valorantRunning = this.hasProcess(processes, 'VALORANT.exe')
       this.consecutiveErrors = 0
-    } catch {
+    } catch (error) {
       this.consecutiveErrors++
       if (this.consecutiveErrors === 3) {
-        this.log('Process detection error — check app permissions', 'error')
+        const reason = error instanceof Error ? error.message : String(error)
+        this.log(`Process detection error: ${reason}`, 'error')
         this.opts.onTrayNotify?.(
           'Riot Companion Helper',
-          'Process detection error — check app permissions'
+          'Process detection failed — see activity log'
         )
       }
       return

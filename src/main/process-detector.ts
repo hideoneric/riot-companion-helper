@@ -1,19 +1,30 @@
 import { execFile } from 'child_process'
+import * as path from 'path'
 
 export interface ProcessDetector {
   snapshot(): Promise<Set<string>>
 }
 
-export class TasklistProcessDetector implements ProcessDetector {
+const POWERSHELL_PATH = path.join(
+  process.env.SystemRoot ?? 'C:\\Windows',
+  'System32',
+  'WindowsPowerShell',
+  'v1.0',
+  'powershell.exe'
+)
+const PROCESS_COMMAND =
+  'Get-Process -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessName'
+
+export class PowerShellProcessDetector implements ProcessDetector {
   snapshot(): Promise<Set<string>> {
     return new Promise((resolve, reject) => {
       execFile(
-        'tasklist',
-        ['/FO', 'CSV', '/NH'],
+        POWERSHELL_PATH,
+        ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', PROCESS_COMMAND],
         {
           encoding: 'utf8',
           maxBuffer: 1024 * 1024,
-          timeout: 2000,
+          timeout: 5000,
           windowsHide: true
         },
         (error, stdout) => {
@@ -21,60 +32,19 @@ export class TasklistProcessDetector implements ProcessDetector {
             reject(error)
             return
           }
-
-          resolve(parseTasklistCsv(stdout))
+          resolve(parsePowerShellProcessNames(stdout))
         }
       )
     })
   }
 }
 
-export function parseTasklistCsv(output: string): Set<string> {
-  const processes = new Set<string>()
-
-  for (const line of output.split(/\r?\n/)) {
-    const fields = parseCsvLine(line)
-    if (fields.length < 2) continue
-
-    const imageName = fields[0].trim().toLowerCase()
-    if (imageName.endsWith('.exe')) processes.add(imageName)
-  }
-
-  return processes
-}
-
-function parseCsvLine(line: string): string[] {
-  const trimmed = line.trim()
-  if (!trimmed) return []
-
-  const fields: string[] = []
-  let field = ''
-  let quoted = false
-
-  for (let index = 0; index < trimmed.length; index++) {
-    const char = trimmed[index]
-    const next = trimmed[index + 1]
-
-    if (char === '"') {
-      if (quoted && next === '"') {
-        field += '"'
-        index++
-      } else {
-        quoted = !quoted
-      }
-      continue
-    }
-
-    if (char === ',' && !quoted) {
-      fields.push(field)
-      field = ''
-      continue
-    }
-
-    field += char
-  }
-
-  fields.push(field)
-
-  return fields
+export function parsePowerShellProcessNames(output: string): Set<string> {
+  return new Set(
+    output
+      .split(/\r?\n/)
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean)
+      .map((name) => (name.endsWith('.exe') ? name : `${name}.exe`))
+  )
 }

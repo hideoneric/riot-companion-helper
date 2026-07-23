@@ -126,4 +126,19 @@ describe('Poller state machine', () => {
 
     expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ blitzRunning: false }))
   })
+
+  it('logs the process detector error after three consecutive failures', async () => {
+    vi.mocked(detector.snapshot).mockRejectedValue(new Error('PowerShell denied'))
+
+    await poller.tick()
+    await poller.tick()
+    await poller.tick()
+
+    expect(onLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'error',
+        message: expect.stringContaining('PowerShell denied')
+      })
+    )
+  })
 })
