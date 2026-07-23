@@ -9,6 +9,7 @@ import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
 import { checkForUpdates, initUpdater, installUpdate } from './updater'
 import { presentWindowOnReady } from './window-startup'
+import { PowerShellProcessDetector } from './process-detector'
 
 app.setName('Riot Companion Helper')
 let isQuitting = false
@@ -19,6 +20,7 @@ if (!app.requestSingleInstanceLock()) app.quit()
 let mainWindow: BrowserWindow | null = null
 const launcher = new BlitzLauncher()
 const porofessorLauncher = new BlitzLauncher()
+const processDetector = new PowerShellProcessDetector()
 const logEntries: unknown[] = []
 
 function createMainWindow(startMinimized: boolean): BrowserWindow {
@@ -75,6 +77,7 @@ app.whenReady().then(() => {
   const poller = new Poller({
     launcher,
     porofessorLauncher,
+    processDetector,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -105,7 +108,7 @@ app.whenReady().then(() => {
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
-  registerIpcHandlers(poller)
+  registerIpcHandlers(poller, processDetector)
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:hide', () => mainWindow?.hide())
   // settings:open navigates the renderer to the settings page instead of opening a new window

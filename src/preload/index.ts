@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (s: unknown) => ipcRenderer.invoke('settings:save', s),
   browse: () => ipcRenderer.invoke('settings:browse'),
+  listProcesses: () => ipcRenderer.invoke('processes:list'),
   onNavigate: (cb: (page: string) => void) => {
     const handler = (_e: unknown, page: string) => cb(page)
     ipcRenderer.on('navigate', handler)

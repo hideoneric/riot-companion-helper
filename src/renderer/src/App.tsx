@@ -13,6 +13,7 @@ declare const window: Window & {
     getSettings: () => Promise<Settings>
     saveSettings: (s: Settings) => Promise<void>
     browse: () => Promise<string | null>
+    listProcesses: () => Promise<Array<{ name: string }>>
     onNavigate: (cb: (page: string) => void) => () => void
     onUpdateStatus: (cb: (s: UpdateStatus) => void) => () => void
     checkForUpdates: () => Promise<void>

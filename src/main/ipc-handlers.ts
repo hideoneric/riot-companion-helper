@@ -3,6 +3,7 @@ import { getSettings, saveSettings } from './settings-store'
 import type { AppSettings } from './settings-store'
 import { setLaunchWithWindows } from './startup'
 import type { Poller } from './poller'
+import type { ProcessDetector } from './process-detector'
 
 let currentState = {
   leagueRunning: false,
@@ -22,7 +23,15 @@ export function setCurrentState(s: typeof currentState) {
   currentState = s
 }
 
-export function registerIpcHandlers(poller: Poller) {
+export interface ProcessOption {
+  name: string
+}
+
+export async function listProcessOptions(detector: ProcessDetector): Promise<ProcessOption[]> {
+  return [...(await detector.snapshot())].sort().map((name) => ({ name }))
+}
+
+export function registerIpcHandlers(poller: Poller, detector: ProcessDetector) {
   ipcMain.handle('state:get', () => currentState)
 
   ipcMain.handle('settings:get', () => getSettings())
@@ -80,6 +89,8 @@ export function registerIpcHandlers(poller: Poller) {
     })
     return result.canceled ? null : result.filePaths[0]
   })
+
+  ipcMain.handle('processes:list', () => listProcessOptions(detector))
 }
 
 export function getPollingUpdate(

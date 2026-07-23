@@ -8,6 +8,7 @@ import { Icon, SectionHeader, Toggle } from './MaterialControls'
 declare const window: Window & {
   api: {
     browse: () => Promise<string | null>
+    listProcesses: () => Promise<Array<{ name: string }>>
   }
 }
 
@@ -156,12 +157,16 @@ function HelperSettingsCard({
   onSave: (s: Settings) => Promise<void>
 }) {
   const [pathValue, setPathValue] = useState(helper.path)
+  const [processValue, setProcessValue] = useState(helper.processName ?? '')
+  const [processes, setProcesses] = useState<Array<{ name: string }>>([])
+  const [processError, setProcessError] = useState('')
   const configured = !!helper.path
   const validPath = isValidPath(pathValue)
   const fallbackName = `Helper slot ${slotNumber}`
   const detectedName = getCompanionDisplayName(pathValue, '', fallbackName)
 
   useEffect(() => setPathValue(helper.path), [helper.path])
+  useEffect(() => setProcessValue(helper.processName ?? ''), [helper.processName])
 
   const saveHelper = useCallback(
     (patch: Partial<HelperConfig>) => {
@@ -189,6 +194,15 @@ function HelperSettingsCard({
     })
   }, [fallbackName, saveHelper])
 
+  const refreshProcesses = useCallback(async () => {
+    setProcessError('')
+    try {
+      setProcesses(await window.api.listProcesses())
+    } catch (error) {
+      setProcessError(error instanceof Error ? error.message : String(error))
+    }
+  }, [])
+
   const handleSaveDetails = useCallback(() => {
     if (!validPath) return
     if (pathValue === helper.path && detectedName === helper.detectedName) return
@@ -212,6 +226,7 @@ function HelperSettingsCard({
     () =>
       saveHelper({
         path: '',
+        processName: '',
         displayName: '',
         detectedName: '',
         enabled: false,
@@ -268,6 +283,33 @@ function HelperSettingsCard({
       </label>
 
       {!validPath && pathValue && <div className="field-error">Path must end in .exe or .lnk.</div>}
+
+      <label>
+        <span>Process</span>
+        <div className="path-field">
+          <input
+            className="input"
+            value={processValue}
+            onChange={(event) => setProcessValue(event.target.value)}
+            onBlur={() => saveHelper({ processName: processValue.trim() })}
+            list={`${helper.id}-processes`}
+            placeholder="Helper.exe"
+          />
+          <button
+            className="icon-button"
+            onClick={refreshProcesses}
+            aria-label={`Refresh process list for ${fallbackName}`}
+          >
+            <Icon name="sync" />
+          </button>
+        </div>
+        <datalist id={`${helper.id}-processes`}>
+          {processes.map((process) => (
+            <option key={process.name} value={process.name} />
+          ))}
+        </datalist>
+      </label>
+      {processError && <div className="field-error">{processError}</div>}
 
       <div className="helper-footer">
         <div className="segmented-control" aria-label={`Game bindings for ${fallbackName}`}>

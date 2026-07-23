@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { getPollingUpdate, shouldRefreshPollingState } from '../src/main/ipc-handlers'
+import {
+  getPollingUpdate,
+  listProcessOptions,
+  shouldRefreshPollingState
+} from '../src/main/ipc-handlers'
+import type { ProcessDetector } from '../src/main/process-detector'
 import type { AppSettings } from '../src/main/settings-store'
 
 const baseSettings: AppSettings = {
@@ -96,5 +101,28 @@ describe('shouldRefreshPollingState', () => {
     }
 
     expect(shouldRefreshPollingState(baseSettings, next)).toBe(true)
+  })
+})
+
+describe('listProcessOptions', () => {
+  it('sorts one shared detector snapshot', async () => {
+    const detector: ProcessDetector = {
+      snapshot: async () => new Set(['valorant.exe', 'blitz.exe'])
+    }
+
+    await expect(listProcessOptions(detector)).resolves.toEqual([
+      { name: 'blitz.exe' },
+      { name: 'valorant.exe' }
+    ])
+  })
+
+  it('preserves detector errors', async () => {
+    const detector: ProcessDetector = {
+      snapshot: async () => {
+        throw new Error('snapshot failed')
+      }
+    }
+
+    await expect(listProcessOptions(detector)).rejects.toThrow('snapshot failed')
   })
 })
