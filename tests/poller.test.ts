@@ -124,9 +124,7 @@ describe('Poller state machine', () => {
 
     await poller.tick()
 
-    expect(onState).toHaveBeenLastCalledWith(
-      expect.objectContaining({ porofessorRunning: true })
-    )
+    expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ porofessorRunning: true }))
     expect(mockPorofessorLauncher.launch).not.toHaveBeenCalled()
   })
 

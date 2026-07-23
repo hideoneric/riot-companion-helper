@@ -95,7 +95,9 @@ export class Poller {
   }
 
   private isBlitzRunning(processes = this.lastProcesses): boolean {
-    return this.hasProcess(processes, this.blitzProcessName) || this.opts.launcher.launchedPid != null
+    return (
+      this.hasProcess(processes, this.blitzProcessName) || this.opts.launcher.launchedPid != null
+    )
   }
 
   private isPorofessorRunning(processes = this.lastProcesses): boolean {
