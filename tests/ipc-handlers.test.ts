@@ -86,4 +86,15 @@ describe('shouldRefreshPollingState', () => {
 
     expect(shouldRefreshPollingState(baseSettings, next)).toBe(true)
   })
+
+  it('refreshes when a helper process selection changes', () => {
+    const next = {
+      ...baseSettings,
+      helpers: baseSettings.helpers.map((helper) =>
+        helper.id === 'helper-1' ? { ...helper, processName: 'Blitz.exe' } : helper
+      )
+    }
+
+    expect(shouldRefreshPollingState(baseSettings, next)).toBe(true)
+  })
 })

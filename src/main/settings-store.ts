@@ -3,6 +3,7 @@ import Store from 'electron-store'
 export interface HelperConfig {
   id: string
   path: string
+  processName?: string
   displayName: string
   detectedName: string
   enabled: boolean

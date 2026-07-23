@@ -125,9 +125,11 @@ app.whenReady().then(() => {
   })
 
   poller.setBlitzPath(settings.helpers[0]?.path ?? '')
+  poller.setBlitzProcessName(settings.helpers[0]?.processName ?? '')
   poller.setBlitzEnabled(settings.helpers[0]?.enabled ?? false)
   poller.setBlitzGameBindings(settings.helpers[0]?.gameBindings ?? { league: true, valorant: true })
   poller.setPorofessorPath(settings.helpers[1]?.path ?? '')
+  poller.setPorofessorProcessName(settings.helpers[1]?.processName ?? '')
   poller.setPorofessorEnabled(settings.helpers[1]?.enabled ?? false)
   poller.setPorofessorGameBindings(
     settings.helpers[1]?.gameBindings ?? { league: true, valorant: false }

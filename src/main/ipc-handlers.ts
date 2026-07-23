@@ -41,9 +41,11 @@ export function registerIpcHandlers(poller: Poller) {
     const [primaryHelper, secondaryHelper] = newSettings.helpers
 
     poller.setBlitzPath(primaryHelper?.path ?? '')
+    poller.setBlitzProcessName(primaryHelper?.processName ?? '')
     poller.setBlitzEnabled(primaryHelper?.enabled ?? false)
     poller.setBlitzGameBindings(primaryHelper?.gameBindings ?? { league: true, valorant: true })
     poller.setPorofessorPath(secondaryHelper?.path ?? '')
+    poller.setPorofessorProcessName(secondaryHelper?.processName ?? '')
     poller.setPorofessorEnabled(secondaryHelper?.enabled ?? false)
     poller.setPorofessorGameBindings(
       secondaryHelper?.gameBindings ?? { league: true, valorant: false }
@@ -109,6 +111,7 @@ export function shouldRefreshPollingState(
 
     return (
       previousHelper.path !== nextHelper.path ||
+      previousHelper.processName !== nextHelper.processName ||
       previousHelper.enabled !== nextHelper.enabled ||
       previousHelper.gameBindings.league !== nextHelper.gameBindings.league ||
       previousHelper.gameBindings.valorant !== nextHelper.gameBindings.valorant

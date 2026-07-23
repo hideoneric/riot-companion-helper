@@ -117,6 +117,30 @@ describe('Poller state machine', () => {
     expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ porofessorRunning: true }))
   })
 
+  it('recognizes an externally started helper selected for a shortcut', async () => {
+    poller.setPorofessorPath('C:\\Start Menu\\Valorant Tracker.lnk')
+    poller.setPorofessorProcessName('Overwolf.exe')
+    setRunning('Overwolf.exe')
+
+    await poller.tick()
+
+    expect(onState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ porofessorRunning: true })
+    )
+    expect(mockPorofessorLauncher.launch).not.toHaveBeenCalled()
+  })
+
+  it('recognizes an externally started primary helper selected for a shortcut', async () => {
+    poller.setBlitzPath('C:\\Start Menu\\Primary Helper.lnk')
+    poller.setBlitzProcessName('PrimaryHelper.exe')
+    setRunning('LeagueClient.exe', 'PrimaryHelper.exe')
+
+    await poller.tick()
+
+    expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ blitzRunning: true }))
+    expect(mockLauncher.launch).not.toHaveBeenCalled()
+  })
+
   it('broadcasts Blitz as stopped after closing it from a stale process snapshot', async () => {
     setRunning('LeagueClient.exe', 'Blitz.exe')
     await poller.tick()

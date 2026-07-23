@@ -46,6 +46,8 @@ export class Poller {
   private intervalHandle: ReturnType<typeof setInterval> | null = null
   private _blitzPath = ''
   private _porofessorPath = ''
+  private blitzProcessName = 'Blitz.exe'
+  private porofessorProcessName = ''
   private porofessorEnabled = true
   private porofessorLeagueBinding = true
   private porofessorValorantBinding = false
@@ -93,12 +95,12 @@ export class Poller {
   }
 
   private isBlitzRunning(processes = this.lastProcesses): boolean {
-    return this.hasProcess(processes, 'Blitz.exe') || this.opts.launcher.launchedPid != null
+    return this.hasProcess(processes, this.blitzProcessName) || this.opts.launcher.launchedPid != null
   }
 
   private isPorofessorRunning(processes = this.lastProcesses): boolean {
     if (!this._porofessorPath) return false
-    const exeName = path.basename(this._porofessorPath)
+    const exeName = this.porofessorProcessName || path.basename(this._porofessorPath)
     if (!exeName.toLowerCase().endsWith('.exe')) {
       return this.opts.porofessorLauncher.launchedPid != null
     }
@@ -168,7 +170,7 @@ export class Poller {
       (valorantRunning && this.valorantEnabled && this.blitzValorantBinding)
 
     if (anyEnabledRunning && !this.anyEnabledWasRunning) {
-      if (this.opts.launcher.launchedPid) {
+      if (this.isBlitzRunning(processes)) {
         this.log('Blitz.gg already running — skipping launch')
       } else if (this._blitzPath && this.blitzEnabled) {
         this.log('Launching Blitz.gg')
@@ -185,7 +187,7 @@ export class Poller {
 
     if (!anyEnabledRunning && this.anyEnabledWasRunning) {
       await Promise.all([this.opts.launcher.kill(), BlitzLauncher.killByName()])
-      stateProcesses.delete('blitz.exe')
+      stateProcesses.delete(this.blitzProcessName.toLowerCase())
       this.log('Blitz.gg closed')
     }
 
@@ -194,7 +196,7 @@ export class Poller {
       (leagueRunning && this.leagueEnabled && this.porofessorLeagueBinding) ||
       (valorantRunning && this.valorantEnabled && this.porofessorValorantBinding)
     if (porofessorBoundGameRunning && !this.porofessorWasRunningForBinding) {
-      if (this.opts.porofessorLauncher.launchedPid) {
+      if (this.isPorofessorRunning(processes)) {
         this.log('Porofessor already running — skipping launch')
       } else if (this._porofessorPath && this.porofessorEnabled) {
         this.log('Launching Porofessor')
@@ -207,7 +209,9 @@ export class Poller {
       }
     } else if (!porofessorBoundGameRunning && this.porofessorWasRunningForBinding) {
       await this.opts.porofessorLauncher.kill()
-      const porofessorExeName = path.basename(this._porofessorPath).toLowerCase()
+      const porofessorExeName = (
+        this.porofessorProcessName || path.basename(this._porofessorPath)
+      ).toLowerCase()
       stateProcesses.delete(porofessorExeName)
       this.log('Porofessor closed')
     }
@@ -224,6 +228,10 @@ export class Poller {
     this._blitzPath = p
   }
 
+  setBlitzProcessName(name: string) {
+    this.blitzProcessName = name.trim() || 'Blitz.exe'
+  }
+
   setBlitzGameBindings(bindings: { league: boolean; valorant: boolean }) {
     this.blitzLeagueBinding = bindings.league
     this.blitzValorantBinding = bindings.valorant
@@ -232,7 +240,7 @@ export class Poller {
   setBlitzEnabled(enabled: boolean) {
     this.blitzEnabled = enabled
     if (!enabled) {
-      this.forgetProcess('Blitz.exe')
+      this.forgetProcess(this.blitzProcessName)
       void this.opts.launcher.kill()
       void BlitzLauncher.killByName()
       this.log('Blitz.gg disabled')
@@ -242,6 +250,10 @@ export class Poller {
 
   setPorofessorPath(p: string) {
     this._porofessorPath = p
+  }
+
+  setPorofessorProcessName(name: string) {
+    this.porofessorProcessName = name.trim()
   }
 
   setPorofessorGameBindings(bindings: { league: boolean; valorant: boolean }) {
@@ -300,6 +312,6 @@ export class Poller {
 
   private forgetPorofessorProcess(): void {
     if (!this._porofessorPath) return
-    this.forgetProcess(path.basename(this._porofessorPath))
+    this.forgetProcess(this.porofessorProcessName || path.basename(this._porofessorPath))
   }
 }

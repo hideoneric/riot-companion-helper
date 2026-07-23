@@ -100,4 +100,18 @@ describe('settings-store', () => {
     expect(settings.helpers[0].displayName).toBe('Legacy Helper')
     expect(settings.helpers[0].enabled).toBe(true)
   })
+
+  it('persists a selected helper process name', () => {
+    const settings = getSettings()
+    settings.helpers[0] = {
+      ...settings.helpers[0],
+      path: 'C:\\Helpers\\Blitz.lnk',
+      processName: 'Blitz.exe',
+      enabled: true
+    }
+
+    saveSettings(settings)
+
+    expect(getSettings().helpers[0].processName).toBe('Blitz.exe')
+  })
 })
