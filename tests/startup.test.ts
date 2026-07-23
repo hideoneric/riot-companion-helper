@@ -15,11 +15,17 @@ describe('setLaunchWithWindows', () => {
 
   it('uses Electron login-item registration', () => {
     setLaunchWithWindows(true)
-    expect(setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true })
+    expect(setLoginItemSettings).toHaveBeenCalledWith({
+      openAtLogin: true,
+      path: process.execPath
+    })
   })
 
   it('disables Electron login-item registration', () => {
     setLaunchWithWindows(false)
-    expect(setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: false })
+    expect(setLoginItemSettings).toHaveBeenCalledWith({
+      openAtLogin: false,
+      path: process.execPath
+    })
   })
 })
