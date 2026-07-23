@@ -5,7 +5,7 @@ export function detectBlitzPath(): string | null {
   const candidateDirs = [
     process.env.LOCALAPPDATA,
     process.env.PROGRAMFILES,
-    process.env['PROGRAMFILES(X86)'],
+    process.env['PROGRAMFILES(X86)']
   ]
   for (const dir of candidateDirs) {
     if (!dir) continue

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type JSX } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface LogEntry {
   timestamp: string
@@ -16,7 +16,7 @@ const levelColor: Record<LogEntry['level'], string> = {
   error: '#e53935'
 }
 
-export function ActivityLog({ entries }: Props): JSX.Element {
+export function ActivityLog({ entries }: Props) {
   const topRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

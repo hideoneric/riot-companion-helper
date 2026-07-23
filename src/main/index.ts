@@ -2,11 +2,15 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import * as path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { getSettings, saveSettings } from './settings-store'
+import { detectBlitzPath } from './detector'
 import { BlitzLauncher } from './launcher'
 import { Poller } from './poller'
 import { createTray } from './tray'
 import { registerIpcHandlers, setCurrentState } from './ipc-handlers'
-import { initUpdater, installUpdate } from './updater'
+import { checkForUpdates, initUpdater, installUpdate } from './updater'
+import { presentWindowOnReady } from './window-startup'
+import { PowerShellProcessDetector } from './process-detector'
+import { setLaunchWithWindows } from './startup'
 
 app.setName('Riot Companion Helper')
 let isQuitting = false
@@ -15,20 +19,21 @@ let isQuitting = false
 if (!app.requestSingleInstanceLock()) app.quit()
 
 let mainWindow: BrowserWindow | null = null
-const leagueLauncher = new BlitzLauncher()
-const valorantLauncher = new BlitzLauncher()
+const launcher = new BlitzLauncher()
+const porofessorLauncher = new BlitzLauncher()
+const processDetector = new PowerShellProcessDetector()
 const logEntries: unknown[] = []
 
-function createMainWindow(): BrowserWindow {
+function createMainWindow(startMinimized: boolean): BrowserWindow {
   const win = new BrowserWindow({
     width: 860,
-    height: 580,
-    minWidth: 760,
-    minHeight: 520,
+    height: 560,
+    minWidth: 840,
+    minHeight: 540,
     resizable: true,
     show: false,
     frame: false,
-    backgroundColor: '#111114',
+    backgroundColor: '#0f1011',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -37,7 +42,7 @@ function createMainWindow(): BrowserWindow {
   })
 
   win.on('ready-to-show', () => {
-    win.show()
+    presentWindowOnReady(win, startMinimized)
     if (!is.dev) initUpdater(win)
   })
 
@@ -60,11 +65,25 @@ function createMainWindow(): BrowserWindow {
 app.whenReady().then(() => {
   app.setAppUserModelId('com.riotcompanionhelper.app')
 
-  const settings = getSettings()
+  // Load and (if needed) auto-detect settings before anything else
+  let settings = getSettings()
+  if (!settings.blitzPath) {
+    const detected = detectBlitzPath()
+    if (detected) {
+      saveSettings({ ...settings, blitzPath: detected })
+      settings = getSettings()
+    }
+  }
+  try {
+    setLaunchWithWindows(settings.launchWithWindows)
+  } catch (error) {
+    console.error('Failed to update Windows startup registration:', error)
+  }
 
   const poller = new Poller({
-    leagueLauncher,
-    valorantLauncher,
+    launcher,
+    porofessorLauncher,
+    processDetector,
     onLog: (entry) => {
       logEntries.unshift(entry)
       if (logEntries.length > 100) logEntries.pop()
@@ -82,46 +101,56 @@ app.whenReady().then(() => {
   // Seed initial state from persisted settings so state:get is correct immediately
   setCurrentState({
     leagueRunning: false,
+    blitzRunning: false,
     valorantRunning: false,
     monitoringEnabled: settings.monitoringEnabled,
-    leagueHelper: {
-      running: false,
-      processRunning: false,
-      pathSet: !!settings.leagueHelper.appPath,
-      processSet: !!settings.leagueHelper.processName,
-      enabled: settings.leagueHelper.enabled,
-      visible: settings.leagueHelper.visible
-    },
-    valorantHelper: {
-      running: false,
-      processRunning: false,
-      pathSet: !!settings.valorantHelper.appPath,
-      processSet: !!settings.valorantHelper.processName,
-      enabled: settings.valorantHelper.enabled,
-      visible: settings.valorantHelper.visible
-    }
+    blitzPathSet: !!settings.helpers[0]?.path,
+    leagueEnabled: settings.leagueEnabled,
+    valorantEnabled: settings.valorantEnabled,
+    blitzEnabled: settings.helpers[0]?.enabled ?? false,
+    porofessorRunning: false,
+    porofessorPathSet: !!settings.helpers[1]?.path,
+    porofessorEnabled: settings.helpers[1]?.enabled ?? false
   })
 
   // Register IPC handlers BEFORE creating windows to avoid any race
-  registerIpcHandlers(poller)
+  registerIpcHandlers(poller, processDetector)
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:hide', () => mainWindow?.hide())
   // settings:open navigates the renderer to the settings page instead of opening a new window
   ipcMain.on('settings:open', () => mainWindow?.webContents.send('navigate', 'settings'))
   ipcMain.on('update:install', () => installUpdate())
+  ipcMain.handle('update:check', () => {
+    if (is.dev) {
+      mainWindow?.webContents.send('update:status', { status: 'not-available' })
+      return Promise.resolve()
+    }
+    return checkForUpdates().catch((error) => {
+      mainWindow?.webContents.send('update:status', {
+        status: 'error',
+        message: (error as Error).message
+      })
+    })
+  })
 
-  poller.setLeagueHelper(settings.leagueHelper)
-  poller.setValorantHelper(settings.valorantHelper)
-  if (
-    settings.monitoringEnabled &&
-    ((settings.leagueHelper.appPath && settings.leagueHelper.processName) ||
-      (settings.valorantHelper.appPath && settings.valorantHelper.processName))
-  ) {
+  poller.setBlitzPath(settings.helpers[0]?.path ?? '')
+  poller.setBlitzProcessName(settings.helpers[0]?.processName ?? '')
+  poller.setBlitzEnabled(settings.helpers[0]?.enabled ?? false)
+  poller.setBlitzGameBindings(settings.helpers[0]?.gameBindings ?? { league: true, valorant: true })
+  poller.setPorofessorPath(settings.helpers[1]?.path ?? '')
+  poller.setPorofessorProcessName(settings.helpers[1]?.processName ?? '')
+  poller.setPorofessorEnabled(settings.helpers[1]?.enabled ?? false)
+  poller.setPorofessorGameBindings(
+    settings.helpers[1]?.gameBindings ?? { league: true, valorant: false }
+  )
+  poller.setLeagueEnabled(settings.leagueEnabled)
+  poller.setValorantEnabled(settings.valorantEnabled)
+  if (settings.monitoringEnabled && settings.helpers.some((helper) => helper.path)) {
     poller.startInterval(settings.pollingInterval)
   }
 
   // Create window after IPC is ready
-  mainWindow = createMainWindow()
+  mainWindow = createMainWindow(settings.startMinimized)
 
   let tray: import('electron').Tray | null = null
 
@@ -140,6 +169,9 @@ app.whenReady().then(() => {
       const enabled = !s.monitoringEnabled
       saveSettings({ ...s, monitoringEnabled: enabled })
       poller.setMonitoring(enabled)
+      if (enabled && s.helpers.some((helper) => helper.path)) {
+        poller.startInterval(s.pollingInterval)
+      }
     },
     () => getSettings().monitoringEnabled
   )
@@ -151,9 +183,11 @@ app.whenReady().then(() => {
 
   app.on('before-quit', () => {
     isQuitting = true
-    if (leagueLauncher.launchedPid) leagueLauncher.kill()
-    if (valorantLauncher.launchedPid) valorantLauncher.kill()
+    if (launcher.launchedPid) void launcher.kill()
+    if (porofessorLauncher.launchedPid) void porofessorLauncher.kill()
   })
 
-  app.on('window-all-closed', () => {})
+  app.on('window-all-closed', () => {
+    // Keep the tray app alive until the user explicitly quits.
+  })
 })

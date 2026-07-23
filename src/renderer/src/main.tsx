@@ -1,6 +1,8 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import '@fontsource-variable/material-symbols-rounded/wght.css'
 import App from './App'
+import './assets/main.css'
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },

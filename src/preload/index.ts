@@ -5,13 +5,13 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.send('window:minimize'),
   hideToTray: () => ipcRenderer.send('window:hide'),
   getState: () => ipcRenderer.invoke('state:get'),
-  onStateUpdate: (cb: (s: unknown) => void): (() => void) => {
-    const handler = (_e: unknown, s: unknown): void => cb(s)
+  onStateUpdate: (cb: (s: unknown) => void) => {
+    const handler = (_e: unknown, s: unknown) => cb(s)
     ipcRenderer.on('state:update', handler)
     return () => ipcRenderer.removeListener('state:update', handler)
   },
-  onLogEntry: (cb: (e: unknown) => void): (() => void) => {
-    const handler = (_e: unknown, entry: unknown): void => cb(entry)
+  onLogEntry: (cb: (e: unknown) => void) => {
+    const handler = (_e: unknown, entry: unknown) => cb(entry)
     ipcRenderer.on('log:entry', handler)
     return () => ipcRenderer.removeListener('log:entry', handler)
   },
@@ -19,15 +19,16 @@ contextBridge.exposeInMainWorld('api', {
   saveSettings: (s: unknown) => ipcRenderer.invoke('settings:save', s),
   browse: () => ipcRenderer.invoke('settings:browse'),
   listProcesses: () => ipcRenderer.invoke('processes:list'),
-  onNavigate: (cb: (page: string) => void): (() => void) => {
-    const handler = (_e: unknown, page: string): void => cb(page)
+  onNavigate: (cb: (page: string) => void) => {
+    const handler = (_e: unknown, page: string) => cb(page)
     ipcRenderer.on('navigate', handler)
     return () => ipcRenderer.removeListener('navigate', handler)
   },
-  onUpdateStatus: (cb: (s: unknown) => void): (() => void) => {
-    const handler = (_e: unknown, s: unknown): void => cb(s)
+  onUpdateStatus: (cb: (s: unknown) => void) => {
+    const handler = (_e: unknown, s: unknown) => cb(s)
     ipcRenderer.on('update:status', handler)
     return () => ipcRenderer.removeListener('update:status', handler)
   },
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.send('update:install')
 })

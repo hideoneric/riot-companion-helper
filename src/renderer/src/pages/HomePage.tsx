@@ -1,413 +1,181 @@
-import React, { useEffect, useRef, useState } from 'react'
-import type { AppState, HelperSlotSettings, HelperSlotState, LogEntry, Settings } from '../App'
+import { useMemo } from 'react'
+import type { AppState, HelperConfig, LogEntry, Settings } from '../App'
+import leagueLogo from '../assets/league-logo.svg'
+import valorantLogo from '../assets/valorant-logo.svg'
+import { Icon, SectionHeader, StatusPill, Toggle } from '../components/MaterialControls'
+import { getCompanionDisplayName } from '../lib/companion-display'
+import { getCommandSummary, getEntityTone, getReadiness } from '../lib/command-center'
+
+export { SectionHeader, Toggle } from '../components/MaterialControls'
 
 interface Props {
   appState: AppState
   logs: LogEntry[]
   settings: Settings
   onSaveSettings: (s: Settings) => Promise<void>
-  onNavigateToSettings: () => void
 }
 
-const levelColor: Record<LogEntry['level'], string> = {
-  info: '#8e8e9a',
-  warn: '#f0a500',
-  error: '#e53935'
+const levelClass: Record<LogEntry['level'], string> = {
+  info: 'info',
+  warn: 'setup',
+  error: 'error'
 }
 
-export function HomePage({
-  appState,
-  logs,
-  settings,
-  onSaveSettings,
-  onNavigateToSettings
-}: Props): React.JSX.Element {
-  const topRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs.length])
-
-  const anyConfigured =
-    appState.leagueHelper.pathSet ||
-    appState.leagueHelper.processSet ||
-    appState.valorantHelper.pathSet ||
-    appState.valorantHelper.processSet
-  const statusLabel = !anyConfigured
-    ? 'WAITING FOR SETUP'
-    : !appState.monitoringEnabled
-      ? 'MONITORING PAUSED'
-      : 'MONITORING ACTIVE'
-  const statusColor = !anyConfigured
-    ? '#f0a500'
-    : !appState.monitoringEnabled
-      ? '#555560'
-      : 'var(--accent)'
+export function HomePage({ appState, logs, settings, onSaveSettings }: Props) {
+  const helpers = settings.helpers
+  const visibleLogs = useMemo(() => logs.slice(0, 4), [logs])
+  const hasHelper = helpers.some((helper) => helper.path)
+  const readiness = getReadiness({
+    pathConfigured: hasHelper,
+    monitoringEnabled: settings.monitoringEnabled
+  })
+  const configuredHelpers = helpers.filter((helper) => helper.path).length
+  const runningHelpers = Number(appState.blitzRunning) + Number(appState.porofessorRunning)
+  const summary = getCommandSummary({
+    leagueRunning: appState.leagueRunning,
+    valorantRunning: appState.valorantRunning,
+    configuredHelpers,
+    runningHelpers
+  })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '24px 28px 20px', flexShrink: 0 }}>
-        <SectionHeading>Monitoring</SectionHeading>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: statusColor,
-              flexShrink: 0,
-              boxShadow:
-                appState.monitoringEnabled && anyConfigured
-                  ? '0 0 8px color-mix(in srgb, var(--accent) 53%, transparent)'
-                  : 'none'
-            }}
-          />
-          <span
-            style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: statusColor }}
-          >
-            {statusLabel}
-          </span>
-          {!anyConfigured && <SettingsLink onClick={onNavigateToSettings} />}
-        </div>
-
-        <GameGroup title="HELPERS">
-          {settings.leagueHelper.visible && (
-            <>
-              <HelperRow
-                label="League helper"
-                processLabel={settings.leagueHelper.processName}
-                state={appState.leagueHelper}
-                settings={settings.leagueHelper}
-                onToggle={() =>
-                  onSaveSettings({
-                    ...settings,
-                    leagueHelper: {
-                      ...settings.leagueHelper,
-                      enabled: !settings.leagueHelper.enabled
-                    }
-                  })
-                }
-                onHide={() =>
-                  onSaveSettings({
-                    ...settings,
-                    leagueHelper: { ...settings.leagueHelper, visible: false }
-                  })
-                }
-              />
-              {settings.valorantHelper.visible && <Divider />}
-            </>
-          )}
-          {settings.valorantHelper.visible && (
-            <HelperRow
-              label="Valorant helper"
-              processLabel={settings.valorantHelper.processName}
-              state={appState.valorantHelper}
-              settings={settings.valorantHelper}
+    <div className="page overview-page">
+      <section className="command-workspace" aria-label="Command center">
+        <div className={`command-card tone-${readiness.tone}`}>
+          <div className="command-status">
+            <div className="status-copy">
+              <div className="status-kicker">
+                <span className="status-dot" aria-hidden="true" />
+                <span>{readiness.label}</span>
+              </div>
+              <p>{readiness.description}</p>
+            </div>
+            <Toggle
+              checked={settings.monitoringEnabled}
+              label="Monitoring"
               onToggle={() =>
-                onSaveSettings({
-                  ...settings,
-                  valorantHelper: {
-                    ...settings.valorantHelper,
-                    enabled: !settings.valorantHelper.enabled
-                  }
-                })
-              }
-              onHide={() =>
-                onSaveSettings({
-                  ...settings,
-                  valorantHelper: { ...settings.valorantHelper, visible: false }
-                })
+                onSaveSettings({ ...settings, monitoringEnabled: !settings.monitoringEnabled })
               }
             />
-          )}
-          {!settings.leagueHelper.visible && !settings.valorantHelper.visible && (
-            <div style={{ padding: '11px 16px', fontSize: 12, color: '#555560' }}>
-              No helpers visible - restore in Settings
-            </div>
-          )}
-        </GameGroup>
-      </div>
+          </div>
 
-      <div style={{ height: 1, background: '#2c2c32', flexShrink: 0 }} />
+          <div className="command-metrics" aria-label="Current state">
+            <Metric icon="sports_esports" label="Games" value={`${summary.activeGames} active`} />
+            <Metric icon="rocket_launch" label="Helpers" value={summary.helperLabel} />
+            <Metric icon="timer" label="Polling" value={`${settings.pollingInterval} sec`} />
+          </div>
+        </div>
 
-      <div
-        style={{
-          flex: 1,
-          padding: '20px 28px 24px',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}
-      >
-        <SectionHeading>Activity Log</SectionHeading>
+        <section className="game-surface" aria-label="Games">
+          <GameControlRow
+            logo={leagueLogo}
+            name="League of Legends"
+            running={appState.leagueRunning}
+            enabled={settings.leagueEnabled}
+            helperNames={helperNamesForGame(helpers, 'league')}
+            onToggle={() => onSaveSettings({ ...settings, leagueEnabled: !settings.leagueEnabled })}
+          />
+          <GameControlRow
+            logo={valorantLogo}
+            name="Valorant"
+            running={appState.valorantRunning}
+            enabled={settings.valorantEnabled}
+            helperNames={helperNamesForGame(helpers, 'valorant')}
+            onToggle={() =>
+              onSaveSettings({ ...settings, valorantEnabled: !settings.valorantEnabled })
+            }
+          />
+        </section>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            background: '#28282d',
-            borderRadius: 8,
-            border: '1px solid #2c2c32',
-            padding: '10px 14px',
-            minHeight: 0
-          }}
-        >
-          {logs.length === 0 ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: '#3a3a3e',
-                fontSize: 12
-              }}
-            >
-              No activity yet
-            </div>
+        <section className="activity-panel" aria-label="Activity">
+          <SectionHeader icon="history" title="Activity" compact />
+          <ActivityList logs={visibleLogs} />
+        </section>
+      </section>
+    </div>
+  )
+}
+
+function GameControlRow({
+  logo,
+  name,
+  running,
+  enabled,
+  helperNames,
+  onToggle
+}: {
+  logo: string
+  name: string
+  running: boolean
+  enabled: boolean
+  helperNames: string[]
+  onToggle: () => void
+}) {
+  const state = getEntityTone({ enabled, running })
+
+  return (
+    <article className="game-row">
+      <img className="brand-logo" src={logo} alt="" aria-hidden="true" />
+      <div className="game-main">
+        <h3>{name}</h3>
+        <div className="chip-row">
+          <StatusPill tone={state.tone}>{state.label}</StatusPill>
+          {helperNames.length > 0 ? (
+            helperNames.map((helper) => (
+              <span key={helper} className="neutral-chip">
+                {helper}
+              </span>
+            ))
           ) : (
-            <>
-              <div ref={topRef} />
-              {logs.map((e) => (
-                <div
-                  key={`${e.timestamp}-${e.message}`}
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    fontSize: 12,
-                    marginBottom: 5,
-                    lineHeight: 1.6
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#3a3a3e',
-                      minWidth: 60,
-                      flexShrink: 0,
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {e.timestamp}
-                  </span>
-                  <span style={{ color: levelColor[e.level] }}>{e.message}</span>
-                </div>
-              ))}
-            </>
+            <span className="neutral-chip muted">No helper</span>
           )}
         </div>
       </div>
-    </div>
+      <Toggle checked={enabled} label={name} onToggle={onToggle} />
+    </article>
   )
 }
 
-function GameGroup({
-  title,
-  children
-}: {
-  title: string
-  children: React.ReactNode
-}): React.JSX.Element {
+function Metric({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div>
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          color: '#3a3a3e',
-          marginBottom: 6,
-          paddingLeft: 2
-        }}
-      >
-        {title}
-      </div>
-      <div
-        style={{
-          background: '#28282d',
-          borderRadius: 8,
-          border: '1px solid #2c2c32',
-          overflow: 'hidden'
-        }}
-      >
-        {children}
+    <div className="command-metric">
+      <Icon name={icon} />
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
       </div>
     </div>
   )
 }
 
-function Divider(): React.JSX.Element {
-  return <div style={{ height: 1, background: '#2c2c32' }} />
-}
-
-function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }): React.JSX.Element {
+function ActivityList({ logs }: { logs: LogEntry[] }) {
   return (
-    <button
-      onClick={onToggle}
-      title={on ? 'Disable' : 'Enable'}
-      style={{
-        width: 30,
-        height: 16,
-        borderRadius: 8,
-        border: 'none',
-        padding: 0,
-        cursor: 'pointer',
-        background: on ? 'var(--accent)' : '#3a3a3e',
-        position: 'relative',
-        flexShrink: 0,
-        transition: 'background 0.2s'
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: 2,
-          left: on ? 16 : 2,
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-          background: '#ffffff',
-          transition: 'left 0.2s'
-        }}
-      />
-    </button>
-  )
-}
-
-function HelperRow({
-  label,
-  processLabel,
-  state,
-  settings,
-  onToggle,
-  onHide
-}: {
-  label: string
-  processLabel: string
-  state: HelperSlotState
-  settings: HelperSlotSettings
-  onToggle: () => void
-  onHide: () => void
-}): React.JSX.Element {
-  const [hovered, setHovered] = useState(false)
-  const ready = !!settings.appPath && !!settings.processName
-  const status = !ready
-    ? 'Setup needed'
-    : !settings.enabled
-      ? 'Disabled'
-      : state.running
-        ? 'Running'
-        : 'Not Running'
-  const statusColor = state.running ? '#4caf50' : !ready ? '#f0a500' : '#555560'
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '11px 16px',
-        opacity: settings.enabled ? 1 : 0.5,
-        transition: 'opacity 0.2s'
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-        <span style={{ fontSize: 13, color: '#d0d0d8' }}>{label}</span>
-        <span style={{ fontSize: 11, color: '#555560' }}>
-          {processLabel || 'No helper process selected'}
-        </span>
-      </span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <ToggleSwitch on={settings.enabled} onToggle={onToggle} />
-        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: state.running ? '#4caf50' : '#3a3a3e',
-              boxShadow: state.running ? '0 0 6px #4caf5066' : 'none',
-              transition: 'background 0.3s, box-shadow 0.3s'
-            }}
-          />
-          <span style={{ fontSize: 12, color: statusColor, minWidth: 78 }}>{status}</span>
-        </span>
-        <button
-          onClick={onHide}
-          title="Hide on Home page"
-          style={{
-            width: 18,
-            height: 18,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 3,
-            padding: 0,
-            cursor: 'pointer',
-            color: hovered ? '#555560' : 'transparent',
-            transition: 'color 0.15s',
-            flexShrink: 0
-          }}
-        >
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 8 8"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          >
-            <line x1="1" y1="1" x2="7" y2="7" />
-            <line x1="7" y1="1" x2="1" y2="7" />
-          </svg>
-        </button>
-      </span>
+    <div className="activity-list">
+      {logs.length === 0 ? (
+        <div className="activity-empty">
+          <Icon name="history" />
+          <span>No activity yet</span>
+        </div>
+      ) : (
+        logs.map((entry) => (
+          <div key={`${entry.timestamp}-${entry.message}`} className="activity-row">
+            <time>{entry.timestamp}</time>
+            <span className={levelClass[entry.level]}>{entry.message}</span>
+          </div>
+        ))
+      )}
     </div>
   )
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <h2
-      style={{
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#ffffff',
-        margin: '0 0 12px',
-        paddingBottom: 8,
-        borderBottom: '1px solid #2c2c32'
-      }}
-    >
-      {children}
-    </h2>
-  )
-}
-
-function SettingsLink({ onClick }: { onClick: () => void }): React.JSX.Element {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        marginLeft: 8,
-        background: 'transparent',
-        border: `1px solid ${hovered ? 'var(--accent)' : '#2c2c32'}`,
-        borderRadius: 5,
-        color: hovered ? '#fff' : '#8e8e9a',
-        cursor: 'pointer',
-        fontSize: 11,
-        padding: '3px 10px',
-        transition: 'border-color 0.15s, color 0.15s'
-      }}
-    >
-      Open Settings
-    </button>
-  )
+function helperNamesForGame(helpers: HelperConfig[], game: 'league' | 'valorant'): string[] {
+  return helpers
+    .filter((helper) => helper.path && helper.enabled && helper.gameBindings[game])
+    .map((helper, index) =>
+      getCompanionDisplayName(
+        helper.path,
+        helper.displayName,
+        helper.detectedName || `Helper ${index + 1}`
+      )
+    )
 }

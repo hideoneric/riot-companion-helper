@@ -1,5 +1,3 @@
-import type { JSX } from 'react'
-
 interface Props {
   leagueRunning: boolean
   blitzRunning: boolean
@@ -12,7 +10,7 @@ export function StatusPanel({
   blitzRunning,
   monitoringEnabled,
   blitzPathSet
-}: Props): JSX.Element {
+}: Props) {
   const label = !blitzPathSet
     ? 'WAITING FOR BLITZ PATH'
     : !monitoringEnabled
@@ -55,7 +53,7 @@ export function StatusPanel({
   )
 }
 
-function ProcessRow({ label, running }: { label: string; running: boolean }): JSX.Element {
+function ProcessRow({ label, running }: { label: string; running: boolean }) {
   return (
     <div
       style={{

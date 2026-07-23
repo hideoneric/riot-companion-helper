@@ -1,4 +1,4 @@
-import type { CSSProperties, JSX } from 'react'
+import React from 'react'
 
 interface Props {
   onOpenSettings: () => void
@@ -6,7 +6,7 @@ interface Props {
   onClose: () => void
 }
 
-export function Header({ onOpenSettings, onMinimize, onClose }: Props): JSX.Element {
+export function Header({ onOpenSettings, onMinimize, onClose }: Props) {
   return (
     <div
       style={
@@ -17,14 +17,14 @@ export function Header({ onOpenSettings, onMinimize, onClose }: Props): JSX.Elem
           background: '#1c1b2e',
           borderBottom: '1px solid #2d2b45',
           WebkitAppRegion: 'drag'
-        } as CSSProperties
+        } as React.CSSProperties
       }
     >
       <span style={{ fontSize: 18, marginRight: 8 }}>⚡</span>
       <span style={{ fontWeight: 700, fontSize: 14, flex: 1, letterSpacing: '0.03em' }}>
         Riot Companion Helper
       </span>
-      <div style={{ display: 'flex', gap: 6, WebkitAppRegion: 'no-drag' } as CSSProperties}>
+      <div style={{ display: 'flex', gap: 6, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button onClick={onOpenSettings} title="Settings" style={btnStyle()}>
           ⚙
         </button>
@@ -39,7 +39,7 @@ export function Header({ onOpenSettings, onMinimize, onClose }: Props): JSX.Elem
   )
 }
 
-function btnStyle(): CSSProperties {
+function btnStyle(): React.CSSProperties {
   return {
     background: 'transparent',
     border: 'none',

@@ -8,9 +8,7 @@ import type { Plugin } from 'vite'
 const removeCrossorigin: Plugin = {
   name: 'remove-crossorigin',
   transformIndexHtml(html: string) {
-    return html
-      .replace(/ crossorigin/g, '')
-      .replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
+    return html.replace(/ crossorigin/g, '').replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
   }
 }
 
@@ -19,7 +17,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin()]
   },
   renderer: {
     root: resolve(__dirname, 'src'),
@@ -32,7 +30,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/renderer/index.html'),
+          index: resolve(__dirname, 'src/renderer/index.html')
         }
       }
     }

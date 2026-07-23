@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react'
-import { Sidebar } from './components/Sidebar'
-import { SubNav } from './components/SubNav'
+import React, { useCallback, useEffect, useState } from 'react'
 import { HomePage } from './pages/HomePage'
 import { SettingsPage } from './pages/SettingsPage'
 
@@ -15,39 +13,26 @@ declare const window: Window & {
     getSettings: () => Promise<Settings>
     saveSettings: (s: Settings) => Promise<void>
     browse: () => Promise<string | null>
-    listProcesses: () => Promise<ProcessOption[]>
+    listProcesses: () => Promise<Array<{ name: string }>>
     onNavigate: (cb: (page: string) => void) => () => void
     onUpdateStatus: (cb: (s: UpdateStatus) => void) => () => void
+    checkForUpdates: () => Promise<void>
     installUpdate: () => void
   }
 }
 
 export interface AppState {
   leagueRunning: boolean
+  blitzRunning: boolean
   valorantRunning: boolean
   monitoringEnabled: boolean
-  leagueHelper: HelperSlotState
-  valorantHelper: HelperSlotState
-}
-
-export interface HelperSlotState {
-  running: boolean
-  processRunning: boolean
-  pathSet: boolean
-  processSet: boolean
-  enabled: boolean
-  visible: boolean
-}
-
-export interface HelperSlotSettings {
-  appPath: string
-  processName: string
-  enabled: boolean
-  visible: boolean
-}
-
-export interface ProcessOption {
-  name: string
+  blitzPathSet: boolean
+  leagueEnabled: boolean
+  valorantEnabled: boolean
+  blitzEnabled: boolean
+  porofessorRunning: boolean
+  porofessorPathSet: boolean
+  porofessorEnabled: boolean
 }
 
 export interface LogEntry {
@@ -56,86 +41,129 @@ export interface LogEntry {
   level: 'info' | 'warn' | 'error'
 }
 
-export interface Settings {
-  launchWithWindows: boolean
-  pollingInterval: number
-  monitoringEnabled: boolean
-  leagueHelper: HelperSlotSettings
-  valorantHelper: HelperSlotSettings
-  themeColor: string
+export interface HelperConfig {
+  id: string
+  path: string
+  processName?: string
+  displayName: string
+  detectedName: string
+  enabled: boolean
+  gameBindings: {
+    league: boolean
+    valorant: boolean
+  }
+  showOnOverview: boolean
 }
 
-export type Page = 'home' | 'settings'
-export type SubPage = 'general' | 'behavior'
+export interface Settings {
+  blitzPath: string
+  blitzName: string
+  launchWithWindows: boolean
+  startMinimized: boolean
+  pollingInterval: number
+  monitoringEnabled: boolean
+  leagueEnabled: boolean
+  valorantEnabled: boolean
+  blitzEnabled: boolean
+  porofessorPath: string
+  porofessorName: string
+  porofessorEnabled: boolean
+  blitzVisible: boolean
+  porofessorVisible: boolean
+  themeColor: string
+  helpers: HelperConfig[]
+}
+
+export type Page = 'overview' | 'settings'
 
 export type UpdateStatus =
-  | { status: 'checking' | 'available' | 'not-available' }
+  | { status: 'checking' }
+  | { status: 'available'; version: string }
+  | { status: 'not-available' }
   | { status: 'downloading'; version: string; progress: number }
   | { status: 'ready'; version: string }
   | { status: 'error'; message: string }
 
-export default function App(): React.JSX.Element {
-  const [activePage, setActivePage] = useState<Page>('home')
-  const [activeSubPage, setActiveSubPage] = useState<SubPage>('general')
+const DEFAULT_SETTINGS: Settings = {
+  blitzPath: '',
+  blitzName: '',
+  launchWithWindows: false,
+  startMinimized: false,
+  pollingInterval: 3,
+  monitoringEnabled: true,
+  leagueEnabled: true,
+  valorantEnabled: true,
+  blitzEnabled: false,
+  porofessorPath: '',
+  porofessorName: '',
+  porofessorEnabled: false,
+  blitzVisible: true,
+  porofessorVisible: true,
+  themeColor: '#d9e6ff',
+  helpers: [
+    {
+      id: 'helper-1',
+      path: '',
+      displayName: '',
+      detectedName: '',
+      enabled: false,
+      gameBindings: { league: true, valorant: true },
+      showOnOverview: true
+    },
+    {
+      id: 'helper-2',
+      path: '',
+      displayName: '',
+      detectedName: '',
+      enabled: false,
+      gameBindings: { league: true, valorant: false },
+      showOnOverview: true
+    }
+  ]
+}
+
+export default function App() {
   const [appState, setAppState] = useState<AppState>({
     leagueRunning: false,
+    blitzRunning: false,
     valorantRunning: false,
     monitoringEnabled: true,
-    leagueHelper: {
-      running: false,
-      processRunning: false,
-      pathSet: false,
-      processSet: false,
-      enabled: true,
-      visible: true
-    },
-    valorantHelper: {
-      running: false,
-      processRunning: false,
-      pathSet: false,
-      processSet: false,
-      enabled: true,
-      visible: true
-    }
+    blitzPathSet: false,
+    leagueEnabled: true,
+    valorantEnabled: true,
+    blitzEnabled: false,
+    porofessorRunning: false,
+    porofessorPathSet: false,
+    porofessorEnabled: false
   })
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const [settings, setSettings] = useState<Settings>({
-    launchWithWindows: false,
-    pollingInterval: 3,
-    monitoringEnabled: true,
-    leagueHelper: {
-      appPath: '',
-      processName: '',
-      enabled: true,
-      visible: true
-    },
-    valorantHelper: {
-      appPath: '',
-      processName: '',
-      enabled: true,
-      visible: true
-    },
-    themeColor: '#7c5cbf'
-  })
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  const [activePage, setActivePage] = useState<Page>('overview')
 
   useEffect(() => {
-    if (!('api' in window)) return undefined
+    if (!window.api) return undefined
+
     try {
       window.api.getState().then(setAppState).catch(console.error)
       window.api.getSettings().then(setSettings).catch(console.error)
-      const unsub1 = window.api.onStateUpdate(setAppState)
-      const unsub2 = window.api.onLogEntry((e) => setLogs((prev) => [e, ...prev].slice(0, 100)))
-      const unsub3 = window.api.onNavigate((page) => {
-        if (page === 'settings') setActivePage('settings')
+      const unsubState = window.api.onStateUpdate(setAppState)
+      const unsubLog = window.api.onLogEntry((entry) =>
+        setLogs((prev) => [entry, ...prev].slice(0, 8))
+      )
+      const unsubNavigate = window.api.onNavigate((page) => {
+        if (page === 'settings') {
+          setActivePage('settings')
+        }
       })
-      const unsub4 = window.api.onUpdateStatus(setUpdateStatus)
+      const unsubUpdate = window.api.onUpdateStatus(setUpdateStatus)
+
       return () => {
-        unsub1()
-        unsub2()
-        unsub3()
-        unsub4()
+        unsubState()
+        unsubLog()
+        unsubNavigate()
+        unsubUpdate()
       }
     } catch (err) {
       console.error('window.api error:', err)
@@ -143,132 +171,96 @@ export default function App(): React.JSX.Element {
     }
   }, [])
 
-  const handleSaveSettings = async (s: Settings): Promise<void> => {
-    await window.api.saveSettings(s)
-    setSettings(s)
-  }
+  const handleSaveSettings = useCallback(async (nextSettings: Settings) => {
+    await window.api.saveSettings(nextSettings)
+    setSettings(nextSettings)
+  }, [])
 
   return (
-    <div
-      style={
-        {
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#111114',
-          '--accent': settings.themeColor
-        } as React.CSSProperties
-      }
-    >
-      {/* Full-width titlebar with window controls top-right */}
-      <Titlebar onMinimize={() => window.api.minimize()} onClose={() => window.api.hideToTray()} />
+    <div className="app-shell">
+      <Titlebar
+        appState={appState}
+        activePage={activePage}
+        onSettings={() => setActivePage((page) => (page === 'settings' ? 'overview' : 'settings'))}
+        onMinimize={() => window.api.minimize()}
+        onClose={() => window.api.hideToTray()}
+      />
 
-      {/* Update banner — only shown when update is fully downloaded */}
       {updateStatus?.status === 'ready' && !updateDismissed && (
         <UpdateBanner
-          version={(updateStatus as { status: 'ready'; version: string }).version}
+          version={updateStatus.version}
           onInstall={() => window.api.installUpdate()}
           onDismiss={() => setUpdateDismissed(true)}
         />
       )}
 
-      {/* Body: sidebar + content */}
-      <div
-        style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}
-      >
-        <Sidebar activePage={activePage} onNavigate={setActivePage} />
-
-        {activePage === 'settings' && (
-          <SubNav activeSub={activeSubPage} onNavigate={setActiveSubPage} />
+      <main className="app-main">
+        {activePage === 'settings' ? (
+          <SettingsPage
+            settings={settings}
+            updateStatus={updateStatus}
+            onSaveSettings={handleSaveSettings}
+            onCheckForUpdates={() => window.api.checkForUpdates()}
+            onInstallUpdate={() => window.api.installUpdate()}
+          />
+        ) : (
+          <HomePage
+            appState={appState}
+            logs={logs}
+            settings={settings}
+            onSaveSettings={handleSaveSettings}
+          />
         )}
-
-        <main
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            background: '#1f1f23'
-          }}
-        >
-          {activePage === 'home' && (
-            <HomePage
-              appState={appState}
-              logs={logs}
-              settings={settings}
-              onSaveSettings={handleSaveSettings}
-              onNavigateToSettings={() => {
-                setActivePage('settings')
-                setActiveSubPage('general')
-              }}
-            />
-          )}
-          {activePage === 'settings' && (
-            <SettingsPage sub={activeSubPage} settings={settings} onSave={handleSaveSettings} />
-          )}
-        </main>
-      </div>
+      </main>
     </div>
   )
 }
 
 function Titlebar({
+  appState,
+  activePage,
+  onSettings,
   onMinimize,
   onClose
 }: {
+  appState: AppState
+  activePage: Page
+  onSettings: () => void
   onMinimize: () => void
   onClose: () => void
-}): React.JSX.Element {
+}) {
+  const hasHelper = appState.blitzPathSet || appState.porofessorPathSet
+  const label = !hasHelper
+    ? 'Setup needed'
+    : appState.monitoringEnabled
+      ? 'Monitoring on'
+      : 'Monitoring off'
+  const statusClass = !hasHelper ? 'setup' : appState.monitoringEnabled ? 'running' : 'idle'
+
   return (
-    <div
-      style={
-        {
-          height: 38,
-          background: '#111114',
-          display: 'flex',
-          alignItems: 'center',
-          paddingLeft: 16,
-          paddingRight: 8,
-          borderBottom: '1px solid #2c2c32',
-          flexShrink: 0,
-          WebkitAppRegion: 'drag'
-        } as React.CSSProperties
-      }
-    >
-      <span
-        style={{
-          flex: 1,
-          fontSize: 12,
-          fontWeight: 600,
-          color: '#8e8e9a',
-          letterSpacing: '0.02em'
-        }}
-      >
-        Riot Companion Helper
-      </span>
-      <div style={{ display: 'flex', gap: 2, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        <TitleBtn onClick={onMinimize} hoverColor="#555560">
-          <svg width="10" height="2" viewBox="0 0 10 2" fill="currentColor">
-            <rect width="10" height="2" rx="1" />
-          </svg>
-        </TitleBtn>
-        <TitleBtn onClick={onClose} hoverColor="#c0392b">
-          <svg
-            width="9"
-            height="9"
-            viewBox="0 0 9 9"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          >
-            <line x1="1" y1="1" x2="8" y2="8" />
-            <line x1="8" y1="1" x2="1" y2="8" />
-          </svg>
-        </TitleBtn>
+    <header className="titlebar">
+      <div className="titlebar-left">
+        <div className="app-mark">R</div>
+        <div className="app-name">Riot Companion Helper</div>
+        <div className={`titlebar-status ${statusClass}`}>{label}</div>
       </div>
-    </div>
+      <div className="titlebar-actions">
+        <TitleButton
+          title={activePage === 'settings' ? 'Command center' : 'Settings'}
+          onClick={onSettings}
+        >
+          <span className="material-symbols-rounded icon titlebar-icon" aria-hidden="true">
+            settings
+          </span>
+        </TitleButton>
+        <TitleButton title="Minimize" onClick={onMinimize}>
+          -
+        </TitleButton>
+        <TitleButton title="Hide to tray" onClick={onClose}>
+          x
+        </TitleButton>
+      </div>
+    </header>
   )
 }
 
@@ -280,84 +272,33 @@ function UpdateBanner({
   version: string
   onInstall: () => void
   onDismiss: () => void
-}): React.JSX.Element {
+}) {
   return (
-    <div
-      style={{
-        background: '#1e1433',
-        borderBottom: '1px solid rgba(124,92,191,0.3)',
-        padding: '6px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0
-      }}
-    >
-      <span style={{ fontSize: 12, color: '#b39ddb' }}>v{version} available</span>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button
-          onClick={onInstall}
-          style={{
-            background: 'var(--accent)',
-            border: 'none',
-            borderRadius: 4,
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 600,
-            padding: '4px 10px',
-            cursor: 'pointer'
-          }}
-        >
-          Update &amp; Restart
+    <div className="update-banner">
+      <span>Update v{version} is ready.</span>
+      <div className="update-actions">
+        <button className="button compact" onClick={onInstall}>
+          Restart
         </button>
-        <button
-          onClick={onDismiss}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#555560',
-            cursor: 'pointer',
-            fontSize: 13,
-            padding: '0 2px'
-          }}
-        >
-          ✕
+        <button className="text-button muted" onClick={onDismiss}>
+          Dismiss
         </button>
       </div>
     </div>
   )
 }
 
-function TitleBtn({
+function TitleButton({
+  title,
   onClick,
-  hoverColor,
   children
 }: {
+  title: string
   onClick: () => void
-  hoverColor: string
   children: React.ReactNode
-}): React.JSX.Element {
-  const [hovered, setHovered] = React.useState(false)
+}) {
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 28,
-        height: 28,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
-        border: 'none',
-        borderRadius: 4,
-        color: hovered ? hoverColor : '#444450',
-        cursor: 'pointer',
-        transition: 'background 0.12s, color 0.12s',
-        padding: 0
-      }}
-    >
+    <button className="titlebar-button" onClick={onClick} title={title} aria-label={title}>
       {children}
     </button>
   )

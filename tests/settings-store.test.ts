@@ -1,16 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-
-const mockStore = vi.hoisted(() => ({
-  data: {} as Record<string, unknown>
-}))
+import { describe, it, expect, vi } from 'vitest'
 
 // Mock electron-store before importing the module
 vi.mock('electron-store', () => {
+  const store: Record<string, unknown> = {}
   return {
     default: vi.fn().mockImplementation(function () {
-      this.get = (key: string, def: unknown) => mockStore.data[key] ?? def
+      this.get = (key: string, def: unknown) => store[key] ?? def
       this.set = (key: string, val: unknown) => {
-        mockStore.data[key] = val
+        store[key] = val
       }
     })
   }
@@ -22,69 +19,99 @@ vi.mock('electron', () => ({ app: { getPath: () => '/tmp' } }))
 import { getSettings, saveSettings } from '../src/main/settings-store'
 
 describe('settings-store', () => {
-  beforeEach(() => {
-    mockStore.data = {}
-  })
-
-  const fullSettings = {
-    launchWithWindows: false,
-    pollingInterval: 3,
-    monitoringEnabled: true,
-    leagueHelper: {
-      appPath: 'C:\\Helpers\\LeagueHelper.exe',
-      processName: 'LeagueClient.exe',
-      enabled: true,
-      visible: true
-    },
-    valorantHelper: {
-      appPath: 'C:\\Helpers\\ValorantHelper.exe',
-      processName: 'VALORANT.exe',
-      enabled: true,
-      visible: true
-    },
-    themeColor: '#7c5cbf'
-  }
-
   it('returns defaults when nothing is stored', () => {
     const s = getSettings()
+    expect(s.blitzPath).toBe('')
+    expect(s.blitzName).toBe('')
     expect(s.launchWithWindows).toBe(false)
+    expect(s.startMinimized).toBe(false)
     expect(s.pollingInterval).toBe(3)
     expect(s.monitoringEnabled).toBe(true)
-    expect(s.leagueHelper).toEqual({
-      appPath: '',
-      processName: '',
-      enabled: true,
-      visible: true
-    })
-    expect(s.valorantHelper).toEqual({
-      appPath: '',
-      processName: '',
-      enabled: true,
-      visible: true
-    })
+    expect(s.helpers).toHaveLength(2)
+    expect(s.helpers[0].displayName).toBe('')
+    expect(s.helpers[0].enabled).toBe(false)
   })
 
   it('saves and retrieves a value', () => {
-    saveSettings(fullSettings)
-    expect(getSettings().leagueHelper.appPath).toBe('C:\\Helpers\\LeagueHelper.exe')
-    expect(getSettings().valorantHelper.processName).toBe('VALORANT.exe')
+    saveSettings({
+      blitzPath: 'C:\\Blitz\\Blitz.exe',
+      blitzName: 'Blitz',
+      launchWithWindows: false,
+      startMinimized: true,
+      pollingInterval: 3,
+      monitoringEnabled: true,
+      leagueEnabled: true,
+      valorantEnabled: true,
+      blitzEnabled: true,
+      porofessorPath: '',
+      porofessorName: '',
+      porofessorEnabled: true,
+      blitzVisible: true,
+      porofessorVisible: true,
+      themeColor: '#ff4058',
+      helpers: [
+        {
+          id: 'helper-1',
+          path: 'C:\\Blitz\\Blitz.exe',
+          displayName: 'Blitz',
+          detectedName: 'Blitz',
+          enabled: true,
+          gameBindings: { league: true, valorant: true },
+          showOnOverview: true
+        },
+        {
+          id: 'helper-2',
+          path: '',
+          displayName: '',
+          detectedName: '',
+          enabled: false,
+          gameBindings: { league: true, valorant: false },
+          showOnOverview: true
+        }
+      ]
+    })
+    expect(getSettings().blitzPath).toBe('C:\\Blitz\\Blitz.exe')
+    expect(getSettings().blitzName).toBe('Blitz')
+    expect(getSettings().startMinimized).toBe(true)
+    expect(getSettings().themeColor).toBe('#d9e6ff')
   })
 
-  it('falls back to default polling interval when stored value is invalid', () => {
-    mockStore.data.pollingInterval = 0
+  it('keeps legacy settings compatible when helpers are missing', () => {
+    saveSettings({
+      blitzPath: 'C:\\Legacy\\Helper.exe',
+      blitzName: 'Legacy Helper',
+      launchWithWindows: false,
+      startMinimized: false,
+      pollingInterval: 3,
+      monitoringEnabled: true,
+      leagueEnabled: true,
+      valorantEnabled: true,
+      blitzEnabled: true,
+      porofessorPath: '',
+      porofessorName: '',
+      porofessorEnabled: true,
+      blitzVisible: true,
+      porofessorVisible: true,
+      themeColor: '#ff4058'
+    } as ReturnType<typeof getSettings>)
 
-    expect(getSettings().pollingInterval).toBe(3)
+    const settings = getSettings()
+    expect(settings.helpers[0].path).toBe('C:\\Legacy\\Helper.exe')
+    expect(settings.helpers[0].displayName).toBe('Legacy Helper')
+    expect(settings.helpers[0].enabled).toBe(true)
   })
 
-  it('preserves valid polling intervals', () => {
-    mockStore.data.pollingInterval = 10
+  it('persists a selected helper process name', () => {
+    const settings = getSettings()
+    settings.helpers[0] = {
+      ...settings.helpers[0],
+      path: 'C:\\Helpers\\Blitz.lnk',
+      processName: 'Blitz.exe',
+      enabled: true
+    }
 
-    expect(getSettings().pollingInterval).toBe(10)
-  })
+    saveSettings(settings)
 
-  it('falls back to default theme color when stored value is invalid', () => {
-    mockStore.data.themeColor = 'purple'
-
-    expect(getSettings().themeColor).toBe('#7c5cbf')
+    expect(getSettings().helpers[0].processName).toBe('Blitz.exe')
   })
 })
