@@ -15,6 +15,7 @@ describe('Poller state machine', () => {
   let detector: ProcessDetector
 
   beforeEach(() => {
+    vi.mocked(BlitzLauncher.killByName).mockClear()
     onLog = vi.fn()
     onState = vi.fn()
     mockLauncher = new BlitzLauncher()
@@ -58,9 +59,9 @@ describe('Poller state machine', () => {
   })
 
   it('kills Blitz when League stops', async () => {
-    setRunning('LeagueClient.exe')
+    setRunning('LeagueClient.exe', 'Blitz.exe')
     await poller.tick()
-    setRunning()
+    setRunning('Blitz.exe')
     await poller.tick()
     expect(mockLauncher.kill).toHaveBeenCalledOnce()
   })
@@ -146,6 +147,13 @@ describe('Poller state machine', () => {
     setRunning('Blitz.exe')
     await poller.tick()
 
+    expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ blitzRunning: false }))
+  })
+
+  it('kills externally started Blitz while no bound game is running', async () => {
+    setRunning('Blitz.exe')
+    await poller.tick()
+    expect(BlitzLauncher.killByName).toHaveBeenCalledOnce()
     expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ blitzRunning: false }))
   })
 

@@ -187,7 +187,7 @@ export class Poller {
 
     const stateProcesses = new Set(processes)
 
-    if (!anyEnabledRunning && this.anyEnabledWasRunning) {
+    if (!anyEnabledRunning && this.isBlitzRunning(processes)) {
       await Promise.all([this.opts.launcher.kill(), BlitzLauncher.killByName()])
       stateProcesses.delete(this.blitzProcessName.toLowerCase())
       this.log('Blitz.gg closed')
